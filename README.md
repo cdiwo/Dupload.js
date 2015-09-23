@@ -4,7 +4,7 @@
 ##使用方法
 
 引入Dropup文件
-<script src="/path/to/dropup.min.js"></script> 
+&lt;script src="/path/to/dropup.min.js"&gt;&lt;/script&gt; 
 
 ###HTML代码
 上传多个文件时，file input要添加multiple属性
