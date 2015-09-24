@@ -468,19 +468,14 @@
         return du;
     };
 
-    // exports
-    // AMD
+    // exports [AMD/RequireJS/Global]
     if (typeof define === 'function' && define.amd) {
         define(function() {
             return Dropup;
         });
-    } 
-    // RequireJS
-    else if (typeof module !== 'undefined' && module.exports) {
+    } else if (typeof module !== 'undefined' && module.exports) {
         module.exports = Dropup;
-    } 
-    // Global
-    else {
+    } else {
         (typeof window !== 'undefined' ? window : this).Dropup = Dropup;
     }
 })();
