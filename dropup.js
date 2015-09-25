@@ -49,14 +49,6 @@
             /*
             Callbacks:
             */
-            // 文件拖放
-            // (注意)dragover事件一定要清除默认事件
-            // 不然会无法触发后面的drop事件
-            onDragHover: function(e) {
-                e.stopPropagation();
-                e.preventDefault();
-                e.type === "dragover" ? this.onDragOver() : this.onDragLeave();
-            },
             onDragOver: function(){}, // 文件拖拽到敏感区域时
             onDragLeave: function(){}, // 文件离开到敏感区域时            
             onDrop: function(file){}, // 文件选择后
@@ -91,6 +83,15 @@
         if (!(this.params.fileInput && (this.params.fileInput.nodeType !== null))) {
             throw new Error("Invalid fileInput.");
         }
+        
+        // 内部事件 文件拖放
+        // (注意)dragover事件一定要清除默认事件
+        // 不然会无法触发后面的drop事件
+        du.onDragHover = function(e) {
+            e.stopPropagation();
+            e.preventDefault();
+            e.type === "dragover" ? this.params.onDragOver() : this.params.onDragLeave();
+        };
 
         // 根据文件状态获取
         du.getFilesWithStatus = function(status) {
@@ -144,7 +145,7 @@
         // 获取选择文件，file控件或拖放
         du.addFiles = function(e) {
             // 取消鼠标经过样式
-            this.params.onDragHover(e);
+            this.onDragHover(e);
 
             // 获取文件列表对象
             var files = e.target.files || e.dataTransfer.files;
@@ -307,10 +308,10 @@
             var self = this;
             // 绑定容器的dragover、dragover、drop事件
             this.container.addEventListener("dragover", function(e) {
-                self.params.onDragHover(e);
+                self.onDragHover(e);
             }, false);
             this.container.addEventListener("dragleave", function(e) {
-                self.params.onDragHover(e);
+                self.onDragHover(e);
             }, false);
             this.container.addEventListener("drop", function(e) {
                 self.addFiles(e);
