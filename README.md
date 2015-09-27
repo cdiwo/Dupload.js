@@ -51,7 +51,14 @@ new Dropup(".dropup-avatar", {
     }
 });
 ```
-
+###服务器端
+数据返回格式必须为json格式，数据结构如下：
+code: 0：表示正常，> 0的值表示有错误
+message: 提示信息
+data: 返回数据
+```
+{"code": 0, "message": "ok", "data": {"path": "upload/avatar/example.jpg"}}
+```
 ##参数
 ### 
 <table>
