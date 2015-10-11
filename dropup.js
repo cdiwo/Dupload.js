@@ -321,7 +321,10 @@
             if (this.params.clickable && this.params.fileInput) {
                 // 绑定容器click事件
                 self.container.addEventListener("click", function(e) {
-                    self.params.fileInput.click();
+                    // 兼容手机浏览器单击无效果的问题
+                    setTimeout(function() {
+                        self.params.fileInput.click();
+                    }
                 });
 
                 //解除容器内部元素click事件
