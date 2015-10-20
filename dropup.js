@@ -322,7 +322,11 @@
                 // 绑定容器click事件
                 self.container.addEventListener("click", function(e) {
                     // 兼容手机浏览器单击无效果的问题
-                    setTimeout(function() {
+                    if(self.isMobileDevice()) {
+                        setTimeout(function() {
+                            self.params.fileInput.click();
+                        }, 1000);// 必须为1000ms
+                    } else {
                         self.params.fileInput.click();
                     }
                 });
@@ -392,6 +396,11 @@
 
         /* 工具方法 */
 
+        // 检测是否是移动端
+        Dropup.isMobileDevice = function() {
+            var ua = navigator.userAgent.toLowerCase();
+            return ua.match(/iphone|ipad|ipod|android|symbianos|windows phone/) ? true : false;
+        }
         //转文件大小
         Dropup.fileSize = function(size) {
             var string;
@@ -427,7 +436,9 @@
         Dropup.getImageSrc = function(file) {
             var src = null;
             // 多浏览器兼容性
-            if (window.URL.createObjectURL) {// safari
+            if(this.isMobileDevice()) {
+                src = "";
+            } else if (window.URL.createObjectURL) {// safari
                 // FF4+
                 src = window.URL.createObjectURL(file);
 
