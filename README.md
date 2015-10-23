@@ -25,11 +25,12 @@ define(['./dropup'], function(Dropup) {
 
 ###HTML代码
 上传多个文件时，file input要添加multiple属性
+android系统选择文件，file input要添加capture="camera"属性，才能打开相机
 ```
 <div class="dropup-avatar">
     <img class="album-image" style="width: 100%; height:120px;" src="default.jpg" />
     <input id="album-image" type="hidden" name="avatar" />
-    <input class="du-fileinput" type="file" accept="image/*" hidden="hidden" style="display:none;" />
+    <input class="du-fileinput" type="file" accept="image/*" capture="camera" hidden="hidden" style="display:none;" />
 </div>
 ```
 ###Javascript代码
