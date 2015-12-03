@@ -43,7 +43,7 @@
             fileInput: null, // HTML file控件
             txtFileTooBig: "文件上传限制最大为{{maxFilesize}}.",
             txtInvalidFileType: "不允许的文件类型",
-            txtMaxFilesExceeded: "文件数量超限",
+            txtMaxFilesExceeded: "最多能上传{{maxFiles}}个文件",
             txtRemoveTips: "您确定要移除这个文件吗？",
             txtCancelUploadTips: "您确定要取消上传吗？",
             /*
@@ -161,7 +161,7 @@
             // 必须小于最大上传量
             if (this.params.maxFiles
                     && (this.params.maxFiles < this.files.length + acceptFiles.length)) {
-                alert(this.params.txtMaxFilesExceeded);
+                alert(this.params.txtMaxFilesExceeded.replace('{{maxFiles}}', this.params.maxFiles));
                 return false;
             }
 
