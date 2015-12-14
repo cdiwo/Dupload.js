@@ -322,7 +322,7 @@
                 // 绑定容器click事件
                 self.container.addEventListener("click", function(e) {
                     // 兼容手机浏览器单击无效果的问题
-                    if(self.isMobileDevice()) {
+                    if(Dropup.isMobileDevice()) {
                         setTimeout(function() {
                             self.params.fileInput.click();
                         }, 1000);// 必须为1000ms
@@ -436,7 +436,7 @@
         Dropup.getImageSrc = function(file) {
             var src = null;
             // 多浏览器兼容性
-            if(this.isMobileDevice()) {
+            if(Dropup.isMobileDevice()) {
                 src = "";
             } else if (window.URL.createObjectURL) {// safari
                 // FF4+
