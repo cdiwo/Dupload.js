@@ -41,6 +41,7 @@
             init: true, // 默认初始化
             clickable: true, // 拖拽敏感区域是否可点击
             fileInput: null, // HTML file控件
+            useFastClick: false, // 是否使用了FastClick
             txtFileTooBig: "文件上传限制最大为{{maxFilesize}}.",
             txtInvalidFileType: "不允许的文件类型",
             txtMaxFilesExceeded: "最多能上传{{maxFiles}}个文件",
@@ -321,8 +322,8 @@
             if (this.params.clickable && this.params.fileInput) {
                 // 绑定容器click事件
                 self.container.addEventListener("click", function(e) {
-                    // 兼容手机浏览器单击无效果的问题
-                    if(Dropup.isMobileDevice()) {
+                    // 兼容FastClick单击无效果的问题
+                    if(self.params.useFastClick) {
                         setTimeout(function() {
                             self.params.fileInput.click();
                         }, 1000);// 必须为1000ms
