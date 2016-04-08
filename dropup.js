@@ -291,7 +291,7 @@
                     formData.append(key, params[key]);
                 }
 
-                formData.append('file', file);
+                formData.append(du.params.fileDataName, file);
 
                 xhr.send(formData);
             }
