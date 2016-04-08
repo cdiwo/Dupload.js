@@ -1,12 +1,12 @@
 /**
  * HTML5 Based File Uploader Plugin. (Phototype JavaScript)
- * Version: 1.3.1 
+ * Version: 1.4.0
  * Description: HTML5 input selected or drop files to mutilpile upload.
  * Author: David Wei <weiguangchun@gmail.com>
- * Copyright: (c)2014-2015 CDIWO Inc. All Copyright Reserved. 
- * Website: https://github.com/cdiwo/Dropup
+ * Copyright: (c)2014-2016 CDIWO Inc. All Copyright Reserved. 
+ * Github: https://github.com/cdiwo/Dropup
  * CreateDate: 2014-10-24 15:30
- * UpdateDate: 2015-09-24 23:30
+ * UpdateDate: 2016-04-08 22:00
  */
 
 (function() {
@@ -18,7 +18,7 @@
     var Dropup = function(container, params) {
 
         var du = this;
-        du.version = "1.3.0";
+        du.version = "1.4.0";
 
         // 状态常量
         var QUEUED = "queued";
@@ -30,61 +30,49 @@
         var defaults = {
             url: null, // ajax地址
             method: "POST", // 提交方式
+            multipart_params: {},// 表单参数
+            base64: false,
             withCredentials: false,
-            allowExts: null, // 待上传的文件类型
-            fileExtDir: null, // 默认文件类型图片目录地址
+            allowExts: null, // 允许的文件类型, 格式: 扩展名[,扩展名], 如: jpeg,jpg,png,gif            
+            maxFilesize: 256, // 单个文件限制 KB
             maxFiles: null, // 最大上传数
-            maxFilesize: 256, // 单个文件最大 KB
             parallelUploads: 2, // 并行上传量
             auto: true, // 自动上传
             multi: true, // 允许上传多个照片
             init: true, // 默认初始化
+            debug: false,// 开启调试信息
+            fileInput: null, // file控件
+            fileDataName: 'file', // file数据名
             clickable: true, // 拖拽敏感区域是否可点击
-            fileInput: null, // HTML file控件
-            useFastClick: false, // 是否使用了FastClick
+            usedFastClick: false, // 是否使用了FastClick
             txtFileTooBig: "文件上传限制最大为{{maxFilesize}}.",
             txtInvalidFileType: "不允许的文件类型",
             txtMaxFilesExceeded: "最多能上传{{maxFiles}}个文件",
-            txtRemoveTips: "您确定要移除这个文件吗？",
             txtCancelUploadTips: "您确定要取消上传吗？",
             /*
             Callbacks:
             */
-            onDragOver: function(){}, // 文件拖拽到敏感区域时
-            onDragLeave: function(){}, // 文件离开到敏感区域时            
-            onDrop: function(file){}, // 文件选择后
-            onProgress: function(file, loaded, total){}, // 文件上传进度
-            onSuccess: function(file, message){}, // 文件上传成功时
-            onError: function(file, message){}, // 文件上传失败时
-            onCanceled: function(file){}, // 上传取消后
-            onDelete: function(file, message){}, // 文件删除后
-            onComplete: function(){} // 文件全部上传完毕时
+            onDragOver: function(){}, // 拖拽到敏感区域
+            onDragLeave: function(){}, // 离开敏感区域            
+            onDrop: function(du, file){}, // 文件选择后
+            onProgress: function(du, file){}, // 上传进度
+            onSuccess: function(du, file, response){}, // 上传成功
+            onError: function(du, file, response){}, // 上传失败
+            onCanceled: function(du, file){}, // 上传取消
+            onDelete: function(du, file){}, // 文件删除
+            onComplete: function(du){} // 全部上传完毕
         };
-        // Extend defaults with parameters
+
+        // 可选参数
         for (var param in params) {
             defaults[param] = params[param];
         }
 
-        this.params = defaults || {};
+        du.params = defaults || {};
+        du.files = []; // 过滤后的文件数组队列
+        du.container = container; // 拖拽敏感区域
+        du.fileInput = du.params.fileInput;// file 控件
 
-        this.files = []; // 过滤后的文件数组队列
-
-        this.container = container; // 拖拽敏感区域
-
-        // 初始化可选参数
-        if (typeof this.container === "string") {
-            this.container = document.querySelector(this.container);
-        }
-        if (!(this.container && (this.container.nodeType !== null))) {
-            throw new Error("Invalid dropup container.");
-        }
-        if (typeof this.params.fileInput === "string") {
-            this.params.fileInput = document.querySelector(this.params.fileInput);
-        }
-        if (!(this.params.fileInput && (this.params.fileInput.nodeType !== null))) {
-            throw new Error("Invalid fileInput.");
-        }
-        
         // 内部事件 文件拖放
         // (注意)dragover事件一定要清除默认事件
         // 不然会无法触发后面的drop事件
@@ -125,18 +113,16 @@
         du.filter = function(files) {
             var arrFiles = [];
             for (var i = 0, file; file = files[i]; i++) {
-                // if (file.type.indexOf("image") === 0
-                //         || (!file.type && /\.(?:jpg|png|gif)$/.test(file.name))) {
+                var exts = (this.params.allowExts || '').replace(/,/g, '|');
+                var regExp = new RegExp("\\.(?:" + exts + ")$");
 
-                var fileExt = file.name.substring(file.name.lastIndexOf('.'));
-                if(this.params.allowExts == null || this.params.allowExts.indexOf(fileExt) != -1) {
-                    if (file.size >= this.params.maxFilesize * 1000) {
-                        file.status = ERROR;
-                        file.errmsg = this.params.txtFileTooBig.replace("{{maxFilesize}}", Dropup.fileSize(this.params.maxFilesize * 1000));
-                    }
-                } else {
+                if(!(this.params.allowExts === null || regExp.test(file.name))) {
                     file.status = ERROR;
                     file.errmsg = this.params.txtInvalidFileType;
+                } else if(file.size >= this.params.maxFilesize * 1000) {
+                    file.status = ERROR;
+                    file.errmsg = this.params.txtFileTooBig.replace('{{maxFilesize}}',
+                        Dropup.formatSize(this.params.maxFilesize * 1000));
                 }
                 arrFiles.push(file);
             }
@@ -169,22 +155,18 @@
             for (var i = 0, file; i < acceptFiles.length; i++) {
                 file = acceptFiles[i];
 
-                // 添加文件属性
-                file.upload = {
-                    progress: 0,
-                    total: file.size,
-                    bytesSent: 0
-                };
-                file.id = Dropup.getId();
+                // 添加文件属性                
+                file.id = Dropup.guid();
                 file.src = Dropup.getSrc(file);
+                file.percent = 0;
 
                 this.files.push(file);
 
                 if (file.status !== ERROR) {
                     this.enqueueFile(file);
-                    this.params.onDrop(file);
+                    this.params.onDrop(du, file);
                 } else {
-                    this.params.onError(file, file.errmsg);
+                    this.params.onError(du, file, file.errmsg);
                 }
             }
         };
@@ -222,24 +204,28 @@
             }
         };
 
-        //单个文件上传完成，解析数据
-        du.uploadComplete = function(file, responseText) {    
+        // 单个文件上传完成，解析数据
+        du.uploadComplete = function(file, responseText) {
             try {
                 var json = eval("(" + responseText + ")");//JSON.parse(responseText);
                 if (json.code === 0) {// 上传成功
-                    file.url = json.data.path;
+                    file.url = json.data.url;
                     this.uploadSuccess(file, '上传成功');
                 } else {//上传失败
                     this.uploadError(file, json.message);
                 }
             } catch (_error) {
-                this.uploadError(file, "Invalid JSON response from server.");
+                if(this.params.debug) {
+                    console.log('Response is not valid json.')
+                }
+                
+                this.uploadSuccess(file, responseText);
             }
         };
         // 单个文件上传成功，触发外部onSuccess事件
         du.uploadSuccess = function(file, message) {
             file.status = SUCCESS;
-            this.params.onSuccess(file, message);
+            this.params.onSuccess(du, file, message);
 
             if (this.params.auto) {
                 this.processQueue();
@@ -248,7 +234,7 @@
         // 单个文件上传失败，触发外部onError事件
         du.uploadError = function(file, message) {
             file.status = ERROR;
-            this.params.onError(file, message);
+            this.params.onError(du, file, message);
 
             if (this.params.auto) {
                 this.processQueue();
@@ -256,48 +242,55 @@
         };
 
         // 单文件上传
-        du.uploadFile = function(file) {
-            var self = this;
-
-            // 非站点服务器上运行
-            if (location.host.indexOf("sitepointstatic") >= 0) {
-                self.uploadError(file, "非站点服务器上运行");
-                return;
-            }
+        du.uploadFile = function(file) {            
             file.status = UPLOADING;
 
             var xhr = new XMLHttpRequest();
             file.xhr = xhr;
 
-            xhr.open(this.params.method, this.params.url, true);
-            xhr.withCredentials = !!this.params.withCredentials;
+            xhr.open(du.params.method, du.params.url, true);
+            xhr.withCredentials = !!du.params.withCredentials;
 
             if (xhr.upload) {
                 // 上传中
                 xhr.upload.addEventListener("progress", function(e) {
-                    self.params.onProgress(file, e.loaded, e.total);
+                    if(e.lengthComputable) {
+                        file.percent = (e.loaded / e.total * 100).toFixed(2);
+                        du.params.onProgress(du, file);
+                    }
                 }, false);
 
-                // 文件上传成功或是失败
-                xhr.onreadystatechange = function(e) {
-                    if (xhr.readyState === 4) {
-                        if (xhr.status === 200) {
-                            self.uploadComplete(file, xhr.responseText);
-                            if (self.getQueuedFiles().length === 0
-                                    && self.getUploadingFiles().length === 0) {
-                                // 全部完毕
-                                self.params.onComplete();
-                            }
-                        } else {
-                            self.uploadError(file, xhr.responseText);
-                        }
+                // 上传成功
+                xhr.addEventListener('load', function(e) {
+                    du.uploadComplete(file, xhr.responseText);
+                    if (du.getQueuedFiles().length === 0
+                            && du.getUploadingFiles().length === 0) {
+                        // 全部完毕
+                        du.params.onComplete(du);
                     }
-                };
+                }, false);
+
+                // 上传失败
+                xhr.addEventListener('error', function(e) {
+                    du.uploadError(file, xhr.responseText);
+                }, false);
+
+                // 上传中止                 
+                xhr.addEventListener('abort', function(e) {
+                    du.params.onCanceled(du, file);
+                }, false);
 
                 // FormData属于XMLHttpRequest Level 2的，
                 // 它可以很快捷的模拟Form表单数据并通过AJAX发送至后端，
                 // FF5+，Chrome12+
                 var formData = new FormData();
+
+                // 迭代追加参数
+                var params = du.params.multipart_params;
+                for (var key in params) {
+                    formData.append(key, params[key]);
+                }
+
                 formData.append('file', file);
 
                 xhr.send(formData);
@@ -306,66 +299,73 @@
 
         // 初始化
         du.init = function() {
-            var self = this;
+
+            if (typeof du.container === "string") {
+                du.container = document.querySelector(du.container);
+            }
+            if (!(du.container && (du.container.nodeType !== null))) {
+                throw new Error("Invalid dropup container.");
+            }
+            if(typeof du.fileInput === "string") {
+                du.fileInput = document.querySelector(du.fileInput);
+            }
+            // 如果未设置，初始化一个图片选择控件                
+            if (!(du.fileInput && (du.fileInput.nodeType !== null))) {
+                var input = document.createElement('input');
+                input.setAttribute('type', 'file');
+                input.setAttribute('accept', 'image/*');
+                input.setAttribute('capture', 'camera');
+                input.setAttribute('stype', 'display:none;');
+
+                du.fileInput = input;
+            }
+
             // 绑定容器的dragover、dragover、drop事件
-            this.container.addEventListener("dragover", function(e) {
-                self.onDragHover(e);
+            du.container.addEventListener("dragover", function(e) {
+                du.onDragHover(e);
             }, false);
-            this.container.addEventListener("dragleave", function(e) {
-                self.onDragHover(e);
+            du.container.addEventListener("dragleave", function(e) {
+                du.onDragHover(e);
             }, false);
-            this.container.addEventListener("drop", function(e) {
-                self.addFiles(e);
+            du.container.addEventListener("drop", function(e) {
+                du.addFiles(e);
             }, false);
 
             // 文件选择控件选择
-            if (this.params.clickable && this.params.fileInput) {
+            if (du.params.clickable && du.fileInput) {
                 // 绑定容器click事件
-                self.container.addEventListener("click", function(e) {
+                du.container.addEventListener("click", function(e) {
                     // 兼容FastClick单击无效果的问题
-                    if(self.params.useFastClick) {
+                    if(du.params.usedFastClick) {
                         setTimeout(function() {
-                            self.params.fileInput.click();
+                            du.fileInput.click();
                         }, 1000);// 必须为1000ms
                     } else {
-                        self.params.fileInput.click();
+                        du.fileInput.click();
                     }
                 });
 
-                //解除容器内部元素click事件
-                //...【外部可能需要】
-
                 // 绑定文件选择器change事件
-                self.params.fileInput.addEventListener("change", function(e) {
-                    self.addFiles(e);
+                du.fileInput.addEventListener("change", function(e) {
+                    du.addFiles(e);
                 }, false);
             }
 
             // 检测是否支持HTML5上传
-            if (window.File && window.FileList && window.FileReader && window.Blob) {
-                /*this.upButton.addEventListener("click", function(e) {
-                    self.processQueue();
-                }, false);*/
-            } else {
+            if (!(window.File && window.FileList && window.FileReader && window.Blob)) {
                 alert("您的浏览器不支持HTML5上传");
             }
         };
 
         // ////////* 外部事件 *//////////
 
-        //上传文件，一般事件绑定在“上传按钮”上
-        du.doUpload = function() {
+        // 开始上传，一般事件绑定在“上传按钮”上
+        du.start = function() {
             this.processQueue();
         };
         // 删除文件，根据文件ID
         // 取消上传 1、待上传；2、上传中; 3、已上传
-        du.doDelete = function(id) {
-            
-            if (this.params.txtRemoveFileConfirmation
-                && !window.confirm(this.params.txtRemoveFileConfirmation)) {
-                return false;
-            }
-
+        du.delete = function(id) {
             //查找文件
             var file, i = 0;
             while (i < this.files.length && (file = this.files[i]).id !== id)
@@ -379,21 +379,36 @@
                 }
 
                 file.xhr.abort();
-
-                // 激活本地取消事件
-                this.params.onCanceled(file);
             }
             // 被移除的文件是取消状态
             file.status = CANCELED;
 
             // 激活本地移除事件
-            this.params.onDelete(file);
+            this.params.onDelete(du, file);
 
             if (this.params.auto) {
                 return this.processQueue();
             }
         };
-
+        // 设置可选参数
+        du.setOption = function(option, value) {
+            function _setOption(option, value) {
+                if(option == 'multipart_params') {
+                    for(var key in value) {
+                        du.params.multipart_params[key] = value[key];
+                    }
+                } else {
+                    du.params[option] = value;
+                }
+            }
+            if (typeof(option) === 'object') {
+                for(var key in option) {
+                    _setOption(key, option[key]);
+                }
+            } else {
+                _setOption(option, value);
+            }
+        };
 
         /* 工具方法 */
 
@@ -402,36 +417,38 @@
             var ua = navigator.userAgent.toLowerCase();
             return ua.match(/iphone|ipad|ipod|android|symbianos|windows phone/) ? true : false;
         }
-        //转文件大小
-        Dropup.fileSize = function(size) {
-            var string;
-            if (size >= (1000 * 1000)) {
-                size = Math.round((size / (1000 * 1000)) * 100) / 100;// 保留两位小数
-                string = "MB";
-            } else if (size >= 1000) {
-                size = Math.round(size / 1000);
-                string = "KB";
-            } else {
-                string = "B";
+        // 格式化文件大小[保留两位小数]
+        Dropup.formatSize = function(size) {
+            return size >= 1000000 ? Math.round(size / 10000) / 100 + 'MB' : (size >= 1000 ? Math.round(size / 10) / 100 + 'KB' : size + 'B');
+        };
+        // 生成唯一ID
+        Dropup.guid = function(len) {            
+            var chars = 'ABCDEFGHJKMNPQRSTWXYZabcdefhijkmnprstwxyz1234567890_-';
+            var maxPos = chars.length;
+            var len = len || 32;
+            var str = '', i;
+            for (i = 0; i < len; i++) {
+                str += chars.charAt(Math.floor(Math.random() * maxPos));
             }
-            return size + string;
-        };
-        //生成随机数ID
-        Dropup.getId = function() {
-            var time = new Date().getTime();
-            var rand = Math.random()
-            if(rand < 0.1) rand += 0.1;
-            rand = Math.round(rand * 1000);
+            return str;
+        }
+        // 获取文件后缀名
+        Dropup.getSuffix = function(filename) {
+            pos = filename.lastIndexOf('.')
+            suffix = ''
+            if (pos != -1) {
+                suffix = filename.substring(pos)
+            }
+            return suffix;
+        }
 
-            return "" + time + rand;
-        };
         //获取文件Src
         Dropup.getSrc = function(file) {
             if (file.type.indexOf("image") === 0
-                || (!file.type && /\.(?:jpg|png|gif)$/.test(file.name))) {
+                || (!file.type && /\.(?:jpg|jpeg|png|gif)$/.test(file.name))) {
                 return Dropup.getImageSrc(file)
             }
-            return Dropup.getFileSrc(file);
+            return "";
         };
         // 读取图片src
         Dropup.getImageSrc = function(file) {
@@ -461,24 +478,8 @@
             return src;
         };
 
-        // 读取文件预设封面src
-        Dropup.getFileSrc = function(file) {
-            var name = file.name;
-            var ext = name.substring(name.lastIndexOf(".") + 1, name.length);
-            var fileExt = ['txt', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'rar', 'zip'];
-            var src = fileExt.indexOf(ext) != -1 ? 'file_' + ext + '.jpg' : 'file_default.jpg';
-
-            if(this.params.fileExtDir) {
-                if(this.params.fileExtDir.lastIndexOf('/') == -1) {
-                    this.params.fileExtDir + '/';
-                }
-                return this.params.fileExtDir + fileExt;
-            }
-            return src;
-        };
-
         // 默认初始化
-        if (this.params.init) this.init();
+        if (du.params.init) this.init();
 
         // 返回实例
         return du;

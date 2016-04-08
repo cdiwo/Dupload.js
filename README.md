@@ -24,14 +24,12 @@ define(['./dropup'], function(Dropup) {
 
 
 ###HTML代码
-上传多个文件时，file input要添加multiple属性
-android系统选择文件，file input要添加capture="camera"属性，才能打开相机
+__提示:__</br>
+1、上传多个文件时，file input要添加multiple属性</br>
+2、android系统选择文件，file input要添加capture="camera"属性，才能打开相机</br>
+3、如果未添加input html代码，插件会自动生成一个图片选择控件
 ```
-<div class="dropup-avatar">
-    <img class="album-image" style="width: 100%; height:120px;" src="default.jpg" />
-    <input id="album-image" type="hidden" name="avatar" />
-    <input class="du-fileinput" type="file" accept="image/*" capture="camera" hidden="hidden" style="display:none;" />
-</div>
+<input class="du-fileinput" type="file" accept="image/*" capture="camera" style="display:none;" />
 ```
 ###Javascript代码
 ```
@@ -43,11 +41,11 @@ new Dropup(".dropup-avatar", {
     url: "http://localhost/upload",
     fileInput: ".du-fileinput",
     maxFilesize: 500,
-    onSuccess: function(file, message) {
+    onSuccess: function(du, file, response) {
         $('.album-image').attr('src', 'http://localhost/' + file.url);
         $('#album-image').val(file.url);
     },
-    onError: function(file, message) {
+    onError: function(du, file, message) {
         alert(message);
     }
 });
@@ -56,9 +54,11 @@ new Dropup(".dropup-avatar", {
 数据返回格式必须为json格式，数据结构如下：</br>
 code: 0：表示正常，> 0的值表示有错误</br>
 message: 提示信息</br>
-data: 返回数据
+data: 返回数据</br>
+__提示:__
+如果返回的数据格式和上面的不一样，插件也会触发onSuccess()回调，但是需要自己处理返回结果
 ```
-{"code": 0, "message": "ok", "data": {"path": "upload/avatar/example.jpg"}}
+{"code": 0, "message": "ok", "data": {"url": "upload/avatar/example.jpg"}}
 ```
 ##参数
 ### 
@@ -102,6 +102,12 @@ data: 返回数据
   <td>提交方式</td>
 </tr>
 <tr>
+  <td>multipart_params</td>
+  <td>object</td>
+  <td>{}</td>
+  <td>表单参数，和上传请求同时发送</td>
+</tr>
+<tr>
   <td>withCredentials</td>
   <td>boolean</td>
   <td>false</td>
@@ -111,25 +117,19 @@ data: 返回数据
   <td>allowExts</td>
   <td>string</td>
   <td>null</td>
-  <td>允许的文件类型，<code>jpeg,png,gif</code>,多个类型使用逗号<code>,</code>隔开</td>
-</tr>
-<tr>
-  <td>fileExtDir</td>
-  <td>string</td>
-  <td>null</td>
-  <td>默认文件类型图片目录地址</td>
-</tr>
-<tr>
-  <td>maxFiles</td>
-  <td>int</td>
-  <td>null</td>
-  <td>最大上传数</td>
+  <td>允许的文件类型, 格式: 扩展名[,扩展名], 如: <code>jpeg,jpg,png,gif</code>,多个类型使用逗号<code>,</code>隔开</td>
 </tr>
 <tr>
   <td>maxFilesize</td>
   <td>int</td>
   <td>256</td>
   <td>单个文件限制 KB</td>
+</tr>
+<tr>
+  <td>maxFiles</td>
+  <td>int</td>
+  <td>null</td>
+  <td>最大上传数</td>
 </tr>
 <tr>
   <td>parallelUploads</td>
@@ -156,16 +156,34 @@ data: 返回数据
   <td>默认初始化</td>
 </tr>
 <tr>
-  <td>clickable</td>
+  <td>debug</td>
   <td>boolean</td>
-  <td>拖拽敏感区域是否可点击</td>
-  <td></td>
+  <td>false</td>
+  <td>开启调试信息</td>
 </tr>
 <tr>
   <td>fileInput</td>
   <td>string</td>
   <td>null</td>
-  <td>HTML file控件</td>
+  <td>HTML file控件, 若此参数不填，会自动生成一个图片控件</td>
+</tr>
+<tr>
+  <td>fileDataName</td>
+  <td>string</td>
+  <td>file</td>
+  <td>file数据名</td>
+</tr>
+<tr>
+  <td>clickable</td>
+  <td>boolean</td>
+  <td>true</td>
+  <td>拖拽敏感区域是否可点击</td>
+</tr>
+<tr>
+  <td>usedFastClick</td>
+  <td>boolean</td>
+  <td>false</td>
+  <td>是否使用了FastClick, 如果同时运行的其他插件有使用FastClick的情况，需要开启这个参数hack BUG</td>
 </tr>
 <tr>
   <th colspan="4">提示文字(Tips Text)</th>
@@ -185,13 +203,7 @@ data: 返回数据
 <tr>
   <td>txtMaxFilesExceeded</td>
   <td>string</td>
-  <td>文件数量超限</td>
-  <td></td>
-</tr>
-<tr>
-  <td>txtRemoveTips</td>
-  <td>string</td>
-  <td>您确定要移除这个文件吗？</td>
+  <td>最多能上传{{maxFiles}}个文件</td>
   <td></td>
 </tr>
 <tr>
@@ -213,54 +225,63 @@ data: 返回数据
   <td>onDragOver</td>
   <td>function(){}</td>
   <td></td>
-  <td>文件拖拽到敏感区域时</td>
+  <td>拖拽到敏感区域</td>
 </tr>
 <tr>
   <td>onDragLeave</td>
   <td>function(){}</td>
   <td></td>
-  <td>文件离开到敏感区域时</td>
+  <td>离开敏感区域</td>
 </tr>
 <tr>
   <td>onDrop</td>
-  <td>function(file){}</td>
+  <td>function(du, file){}</td>
   <td></td>
   <td>文件选择后</td>
 </tr>
 <tr>
   <td>onProgress</td>
-  <td>function(file, loaded, total){}</td>
+  <td>function(du, file){}</td>
   <td></td>
-  <td>文件上传进度</td>
+  <td>上传进度</td>
 </tr>
 <tr>
   <td>onSuccess</td>
-  <td>function(file, message){}</td>
+  <td>function(du, file, response){}</td>
   <td></td>
-  <td>文件上传成功时</td>
+  <td>上传成功</td>
 </tr>
 <tr>
   <td>onError</td>
-  <td>function(file, message){}</td>
+  <td>function(du, file, response){}</td>
   <td></td>
-  <td>文件上传失败时</td>
+  <td>上传失败</td>
 </tr>
 <tr>
   <td>onCanceled</td>
-  <td>function(file){}</td>
+  <td>function(du, file){}</td>
   <td></td>
-  <td>上传取消后</td>
+  <td>上传取消</td>
 </tr>
 <tr>
   <td>onDelete</td>
-  <td>function(file, message){}</td>
+  <td>function(du, file){}</td>
   <td></td>
-  <td>文件删除后</td>
+  <td>文件删除</td>
 </tr>
 <tr>
   <td>onComplete</td>
-  <td>function(){}</td>
+  <td>function(du){}</td>
   <td></td>
-  <td>文件全部上传完毕时</td>
+  <td>文件全部上传完毕</td>
+</tr>
+<tr>
+  <th colspan="4">回调函数（Callback)</th>
+</tr>
+<tr>
+  <td>file</td>
+  <td>object</td>
+  <td>{id: "kQtmYe2Mi07w0Z-T67cTzMmHixHB3Chx", name: "example.jpg", percent: "100.00", size: 8172, src: "", status: "success", type: "image/jpeg"}</td>
+  <td>文件对象数据结构</td>
 </tr>
 </tbody></table>
