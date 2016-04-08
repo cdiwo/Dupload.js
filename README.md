@@ -42,8 +42,7 @@ new Dropup(".dropup-avatar", {
     fileInput: ".du-fileinput",
     maxFilesize: 500,
     onSuccess: function(du, file, response) {
-        $('.album-image').attr('src', 'http://localhost/' + file.url);
-        $('#album-image').val(file.url);
+        console.log(file);
     },
     onError: function(du, file, message) {
         alert(message);
