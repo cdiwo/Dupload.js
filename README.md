@@ -27,7 +27,7 @@ define(['./dropup'], function(Dropup) {
 __提示:__</br>
 1、上传多个文件时，file input要添加multiple属性</br>
 2、android系统选择文件，file input要添加capture="camera"属性，才能打开相机</br>
-3、如果未添加input html代码，插件会自动生成一个图片选择控件
+3、如果未添加html代码或未指定fileInput参数，插件会自动生成一个图片选择控件
 ```
 <input class="du-fileinput" type="file" accept="image/*" capture="camera" style="display:none;" />
 ```
@@ -54,12 +54,13 @@ new Dropup(".dropup-avatar", {
 数据返回格式必须为json格式，数据结构如下：</br>
 code: 0：表示正常，> 0的值表示有错误</br>
 message: 提示信息</br>
-data: 返回数据</br>
-__提示:__
-如果返回的数据格式和上面的不一样，插件也会触发onSuccess()回调，但是需要自己处理返回结果
+data: 返回数据
 ```
 {"code": 0, "message": "ok", "data": {"url": "upload/avatar/example.jpg"}}
 ```
+__提示:__</br>
+如果返回的数据格式和上面的不一样，插件也会触发onSuccess()回调，但是需要自己处理返回结果
+
 ##参数
 ### 
 <table>
@@ -76,7 +77,7 @@ __提示:__
 <tr><th colspan="4">构造参数</th></tr>
 <tr>
   <td>container</td>
-  <td>string</td>
+  <td>string or HTMLElement</td>
   <td></td>
   <td>拖拽敏感区域</td>
 </tr>
@@ -163,7 +164,7 @@ __提示:__
 </tr>
 <tr>
   <td>fileInput</td>
-  <td>string</td>
+  <td>string or HTMLElement</td>
   <td>null</td>
   <td>HTML file控件, 若此参数不填，会自动生成一个图片控件</td>
 </tr>
@@ -217,61 +218,61 @@ __提示:__
 </tr>
 <tr>
   <td>onDragHover</td>
-  <td>function</td>
+  <td>function()</td>
   <td></td>
   <td>文件拖放，(注意)dragover事件一定要清除默认事件，不然会无法触发后面的drop事件</td>
 </tr>
 <tr>
   <td>onDragOver</td>
-  <td>function(){}</td>
+  <td>function()</td>
   <td></td>
   <td>拖拽到敏感区域</td>
 </tr>
 <tr>
   <td>onDragLeave</td>
-  <td>function(){}</td>
+  <td>function()</td>
   <td></td>
   <td>离开敏感区域</td>
 </tr>
 <tr>
   <td>onDrop</td>
-  <td>function(du, file){}</td>
+  <td>function(du, file)</td>
   <td></td>
   <td>文件选择后</td>
 </tr>
 <tr>
   <td>onProgress</td>
-  <td>function(du, file){}</td>
+  <td>function(du, file)</td>
   <td></td>
   <td>上传进度</td>
 </tr>
 <tr>
   <td>onSuccess</td>
-  <td>function(du, file, response){}</td>
+  <td>function(du, file, response)</td>
   <td></td>
   <td>上传成功</td>
 </tr>
 <tr>
   <td>onError</td>
-  <td>function(du, file, response){}</td>
+  <td>function(du, file, response)</td>
   <td></td>
   <td>上传失败</td>
 </tr>
 <tr>
   <td>onCanceled</td>
-  <td>function(du, file){}</td>
+  <td>function(du, file)</td>
   <td></td>
   <td>上传取消</td>
 </tr>
 <tr>
   <td>onDelete</td>
-  <td>function(du, file){}</td>
+  <td>function(du, file)</td>
   <td></td>
   <td>文件删除</td>
 </tr>
 <tr>
   <td>onComplete</td>
-  <td>function(du){}</td>
+  <td>function(du)</td>
   <td></td>
   <td>文件全部上传完毕</td>
 </tr>
@@ -281,7 +282,7 @@ __提示:__
 <tr>
   <td>file</td>
   <td>object</td>
-  <td>{id: "kQtmYe2Mi07w0Z-T67cTzMmHixHB3Chx", name: "example.jpg", percent: "100.00", size: 8172, src: "", status: "success", type: "image/jpeg"}</td>
-  <td>文件对象数据结构</td>
+  <td></td>
+  <td>文件对象数据结构，例如: <code>{id: "kQtmYe2Mi07w0Z-T67cTzMmHixHB3Chx", name: "example.jpg", percent: "100.00", size: 8172, src: "", status: "success", type: "image/jpeg"}</code></td>
 </tr>
 </tbody></table>
