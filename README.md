@@ -276,7 +276,7 @@ __提示:__</br>
   <td>文件全部上传完毕</td>
 </tr>
 <tr>
-  <th colspan="4">回调函数（Callback)</th>
+  <th colspan="4">file对象数据结构</th>
 </tr>
 <tr>
   <td>file</td>
