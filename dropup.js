@@ -1,12 +1,12 @@
 /**
  * HTML5 Based File Uploader Plugin. (Phototype JavaScript)
- * Version: 1.4.0
+ * Version: 1.5.0
  * Description: HTML5 input selected or drop files to mutilpile upload.
  * Author: David Wei <weiguangchun@gmail.com>
  * Copyright: (c)2014-2016 CDIWO Inc. All Copyright Reserved. 
  * Github: https://github.com/cdiwo/Dropup
  * CreateDate: 2014-10-24 15:30
- * UpdateDate: 2016-04-08 22:00
+ * UpdateDate: 2016-05-25 0:05
  */
 
 (function() {
@@ -18,11 +18,12 @@
     var Dropup = function(container, params) {
 
         var du = this;
-        du.version = "1.4.0";
+        du.version = "1.5.0";
 
         // 状态常量
         var QUEUED = "queued";
         var UPLOADING = "uploading";
+        var UPLOADED = "uploaded";
         var CANCELED = "canceled";
         var ERROR = "error";
         var SUCCESS = "success";
@@ -31,7 +32,6 @@
             url: null, // ajax地址
             method: "POST", // 提交方式
             multipart_params: {},// 表单参数
-            base64: false,
             withCredentials: false,
             allowExts: null, // 允许的文件类型, 格式: 扩展名[,扩展名], 如: jpeg,jpg,png,gif            
             maxFilesize: 256, // 单个文件限制 KB
@@ -40,7 +40,6 @@
             auto: true, // 自动上传
             multi: true, // 允许上传多个照片
             init: true, // 默认初始化
-            debug: false,// 开启调试信息
             fileInput: null, // file控件
             fileDataName: 'file', // file数据名
             clickable: true, // 拖拽敏感区域是否可点击
@@ -55,12 +54,14 @@
             onDragOver: function(){}, // 拖拽到敏感区域
             onDragLeave: function(){}, // 离开敏感区域            
             onDrop: function(du, file){}, // 文件选择后
+            onBefore: function(du, file){},// 上传前
             onProgress: function(du, file){}, // 上传进度
+            onUploaded: function(du, file, response){}, // 上传完毕
             onSuccess: function(du, file, response){}, // 上传成功
             onError: function(du, file, response){}, // 上传失败
-            onCanceled: function(du, file){}, // 上传取消
+            onCancel: function(du, file){}, // 上传取消
             onDelete: function(du, file){}, // 文件删除
-            onComplete: function(du){} // 全部上传完毕
+            onComplete: function(du){}, // 全部上传完毕
         };
 
         // 可选参数
@@ -113,10 +114,10 @@
         du.filter = function(files) {
             var arrFiles = [];
             for (var i = 0, file; file = files[i]; i++) {
-                var exts = (this.params.allowExts || '').replace(/,/g, '|');
+                var exts = (this.params.allowExts || '').replace(/,/g, '|').replace(/\s/g, '');
                 var regExp = new RegExp("\\.(?:" + exts + ")$");
 
-                if(!(this.params.allowExts === null || regExp.test(file.name))) {
+                if(!(this.params.allowExts === null || regExp.test(file.name.toLowerCase()))) {
                     file.status = ERROR;
                     file.errmsg = this.params.txtInvalidFileType;
                 } else if(file.size >= this.params.maxFilesize * 1000) {
@@ -204,24 +205,24 @@
             }
         };
 
-        // 单个文件上传完成，解析数据
+        // 单个文件上传完成，触发外部onUploaded事件
         du.uploadComplete = function(file, responseText) {
-            try {
-                var json = eval("(" + responseText + ")");//JSON.parse(responseText);
-                if (json.code === 0) {// 上传成功
-                    file.url = json.data.url;
-                    this.uploadSuccess(file, '上传成功');
-                } else {//上传失败
-                    this.uploadError(file, json.message);
+            file.status = UPLOADED;
+
+            var ret;
+            if((ret = this.params.onUploaded(du, file, responseText))) {
+                if(ret === true) {
+                    this.params.onSuccess(du, file, '上传成功');
+                } else {
+                    this.params.onError(du, file, ret);
                 }
-            } catch (_error) {
-                if(this.params.debug) {
-                    console.log('Response is not valid json.')
-                }
-                
-                this.uploadSuccess(file, responseText);
+            }
+
+            if (this.params.auto) {
+                this.processQueue();
             }
         };
+
         // 单个文件上传成功，触发外部onSuccess事件
         du.uploadSuccess = function(file, message) {
             file.status = SUCCESS;
@@ -245,8 +246,12 @@
         du.uploadFile = function(file) {            
             file.status = UPLOADING;
 
+            // 上传之前，可以调用setOption()
+            du.params.onBefore(du, file);
+
             var xhr = new XMLHttpRequest();
             file.xhr = xhr;
+            file.startTime = new Date().getTime();
 
             xhr.open(du.params.method, du.params.url, true);
             xhr.withCredentials = !!du.params.withCredentials;
@@ -255,6 +260,7 @@
                 // 上传中
                 xhr.upload.addEventListener("progress", function(e) {
                     if(e.lengthComputable) {
+                        file.speed = (e.loaded / (new Date().getTime() - file.startTime)).toFixed(2) + "KB\/s";
                         file.percent = (e.loaded / e.total * 100).toFixed(2);
                         du.params.onProgress(du, file);
                     }
@@ -275,9 +281,9 @@
                     du.uploadError(file, xhr.responseText);
                 }, false);
 
-                // 上传中止                 
+                // 上传中止
                 xhr.addEventListener('abort', function(e) {
-                    du.params.onCanceled(du, file);
+                    du.params.onCancel(du, file);
                 }, false);
 
                 // FormData属于XMLHttpRequest Level 2的，
@@ -335,7 +341,7 @@
             if (du.params.clickable && du.fileInput) {
                 // 绑定容器click事件
                 du.container.addEventListener("click", function(e) {
-                    // 兼容FastClick单击无效果的问题
+                    // 兼容旧版FastClick单击无效果的问题
                     if(du.params.usedFastClick) {
                         setTimeout(function() {
                             du.fileInput.click();
@@ -409,6 +415,9 @@
                 _setOption(option, value);
             }
         };
+        du.getOption = function(key) {
+            return !key ? du.params : du.params[key];
+        }
 
         /* 工具方法 */
 
@@ -434,8 +443,8 @@
         }
         // 获取文件后缀名
         Dropup.getSuffix = function(filename) {
-            pos = filename.lastIndexOf('.')
-            suffix = ''
+            var pos = filename.lastIndexOf('.'),
+                suffix = '';
             if (pos != -1) {
                 suffix = filename.substring(pos)
             }
@@ -445,7 +454,7 @@
         //获取文件Src
         Dropup.getSrc = function(file) {
             if (file.type.indexOf("image") === 0
-                || (!file.type && /\.(?:jpg|jpeg|png|gif)$/.test(file.name))) {
+                || (!file.type && /\.(?:jpg|jpeg|png|gif)$/.test(file.name.toLowerCase()))) {
                 return Dropup.getImageSrc(file)
             }
             return "";

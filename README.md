@@ -1,46 +1,52 @@
-#HTML5 Based File Uploader
-#Dropup
+# HTML5 Based File Uploader
+# Dropup
 
-##使用方法
+## 使用方法
 
-#####引入Dropup文件
+##### 引入Dropup文件
 
 CommonJS 方式引用
-```
-var Dropup = require('dropup.js');
+```js
+var Dropup = require('dropup');
 ```
 
 AMD 方式引用
-```
+```js
 define(['./dropup'], function(Dropup) {
     // ...
 });
 ```
 
 全局方式，在HTML页面中引入:
-```
+```html
 <script src="dropup.min.js"></script>
 ```
 
 
-###HTML代码
+### HTML代码
 __提示:__</br>
 1、上传多个文件时，file input要添加multiple属性</br>
 2、android系统选择文件，file input要添加capture="camera"属性，才能打开相机</br>
 3、如果未添加html代码或未指定fileInput参数，插件会自动生成一个图片选择控件
-```
+```html
 <input class="du-fileinput" type="file" accept="image/*" capture="camera" style="display:none;" />
 ```
-###Javascript代码
-```
+### Javascript代码
+```js
 new Dropup(container, params);
 ```
 Example：
-```
+```js
 new Dropup(".dropup-avatar", {
     url: "http://localhost/upload",
-    fileInput: ".du-fileinput",
     maxFilesize: 500,
+    onUploaded: function(du, file, response) {
+        // your code to parse response
+        // ...
+        return false;// 不处理
+        return true;// 会调用onSuccess()
+        return "error";// 会调用onError()
+    },
     onSuccess: function(du, file, response) {
         console.log(file);
     },
@@ -49,18 +55,11 @@ new Dropup(".dropup-avatar", {
     }
 });
 ```
-###服务器端
-数据返回格式必须为json格式，数据结构如下：</br>
-code: 0：表示正常，> 0的值表示有错误</br>
-message: 提示信息</br>
-data: 返回数据
-```
-{"code": 0, "message": "ok", "data": {"url": "upload/avatar/example.jpg"}}
-```
-__提示:__</br>
-如果返回的数据格式和上面的不一样，插件也会触发onSuccess()回调，但是需要自己处理返回结果
+### 服务器端
+数据返回格式没有要求，不过通常我们为了方便前端处理，都返回JSON格式。
 
-##参数
+
+## 参数
 ### 
 <table>
 <thead>
@@ -156,12 +155,6 @@ __提示:__</br>
   <td>默认初始化</td>
 </tr>
 <tr>
-  <td>debug</td>
-  <td>boolean</td>
-  <td>false</td>
-  <td>开启调试信息</td>
-</tr>
-<tr>
   <td>fileInput</td>
   <td>string or HTMLElement</td>
   <td>null</td>
@@ -219,7 +212,7 @@ __提示:__</br>
   <td>onDragHover</td>
   <td>function()</td>
   <td></td>
-  <td>文件拖放，(注意)dragover事件一定要清除默认事件，不然会无法触发后面的drop事件</td>
+  <td>文件拖放。<br/>【注意】dragover事件一定要清除默认事件，不然会无法触发后面的drop事件</td>
 </tr>
 <tr>
   <td>onDragOver</td>
@@ -240,10 +233,26 @@ __提示:__</br>
   <td>文件选择后</td>
 </tr>
 <tr>
+  <td>onBefore</td>
+  <td>function(du, file)</td>
+  <td></td>
+  <td>上传之前</td>
+</tr>
+<tr>
   <td>onProgress</td>
   <td>function(du, file)</td>
   <td></td>
   <td>上传进度</td>
+</tr>
+<tr>
+  <td>onUploaded</td>
+  <td>function(du, file, response)</td>
+  <td></td>
+  <td>上传完毕。<br/>【注意】不同返回值会回调不同函数:<br/>
+    <code>return false;// 不处理</code><br/>
+    <code>return true;// 会调用onSuccess()</code><br/>
+    <code>return "error";// 会调用onError()</code>
+  </td>
 </tr>
 <tr>
   <td>onSuccess</td>
@@ -258,7 +267,7 @@ __提示:__</br>
   <td>上传失败</td>
 </tr>
 <tr>
-  <td>onCanceled</td>
+  <td>onCancel</td>
   <td>function(du, file)</td>
   <td></td>
   <td>上传取消</td>
@@ -284,4 +293,37 @@ __提示:__</br>
   <td></td>
   <td>文件对象数据结构，例如: <code>{id: "kQtmYe2Mi07w0Z-T67cTzMmHixHB3Chx", name: "example.jpg", percent: "100.00", size: 8172, src: "", status: "success", type: "image/jpeg"}</code></td>
 </tr>
+<tr>
+  <th colspan="4">外部方法</th>
+</tr>
+<tr>
+  <td>start</td>
+  <td>function()</td>
+  <td></td>
+  <td>上传开始，如果参数<code>auto</code>为<code>false</code>时，需要手动调用此方法</td>
+</tr>
+<tr>
+  <td>delete</td>
+  <td>function(id)</td>
+  <td></td>
+  <td>删除文件，参数<code>id</code>是<code>file.id</code></td>
+</tr>
+<tr>
+  <td>setOption</td>
+  <td>function(option, value)</td>
+  <td></td>
+  <td>参数设置</td>
+</tr>
 </tbody></table>
+
+### 更新日志
+
+### 1.5.0 - 2016/05/25
+1. 插件不再处理上传结果，直接调用onUploaded()由用户处理。
+
+### 1.4.0 - 2016/04/08
+1. 调整大量代码结构。
+2. 上传完成后，如果是JSON会自动处理结果，否则直接调用onSuccess()函数由用户处理。
+3. 新增onBefore()回调函数，便于上传之前修改参数。
+4. 新增setOption()方法。
+
