@@ -12,7 +12,7 @@ var Dropup = require('dropup');
 
 AMD 方式引用
 ```js
-define(['./dropup'], function(Dropup) {
+define(['dropup'], function(Dropup) {
     // ...
 });
 ```
@@ -27,9 +27,14 @@ define(['./dropup'], function(Dropup) {
 __提示:__</br>
 1、上传多个文件时，file input要添加multiple属性</br>
 2、android系统选择文件，file input要添加capture="camera"属性，才能打开相机</br>
-3、如果未添加html代码或未指定fileInput参数，插件会自动生成一个图片选择控件
+3、未添加file控件html代码，且未指定fileInput参数，插件会自动生成一个图片选择控件
+__注意:__
+1、添加了file控件html代码，必须指定fileInput参数，否则会触发两次`click`事件，出现2次文件选择器。
+2、若使用了`FastClick`插件，必须在file控件父元素添加class`needsclick`，否则container内部分甚至全部区域点击无效。
 ```html
-<input class="du-fileinput" type="file" accept="image/*" capture="camera" style="display:none;" />
+<div class="container" style="width: 200px; height:200px; border: 1px solid black;">
+    <input class="du-fileinput" type="file" accept="image/*" capture="camera" style="display:none;" />
+</div>
 ```
 ### Javascript代码
 ```js
@@ -37,8 +42,9 @@ new Dropup(container, params);
 ```
 Example：
 ```js
-new Dropup(".dropup-avatar", {
+new Dropup(".container", {
     url: "http://localhost/upload",
+    fileInput: '.du-fileinput',
     maxFilesize: 500,
     onUploaded: function(du, file, response) {
         // your code to parse response
@@ -158,7 +164,7 @@ new Dropup(".dropup-avatar", {
   <td>fileInput</td>
   <td>string or HTMLElement</td>
   <td>null</td>
-  <td>HTML file控件, 若此参数不填，会自动生成一个图片控件</td>
+  <td>file控件, container里存在file控件，则必填。反之可不填，会自动生成一个图片控件</td>
 </tr>
 <tr>
   <td>fileDataName</td>
@@ -171,12 +177,6 @@ new Dropup(".dropup-avatar", {
   <td>boolean</td>
   <td>true</td>
   <td>拖拽敏感区域是否可点击</td>
-</tr>
-<tr>
-  <td>usedFastClick</td>
-  <td>boolean</td>
-  <td>false</td>
-  <td>是否使用了FastClick, 如果同时运行的其他插件有使用FastClick的情况，需要开启这个参数hack BUG</td>
 </tr>
 <tr>
   <th colspan="4">提示文字(Tips Text)</th>
@@ -317,6 +317,8 @@ new Dropup(".dropup-avatar", {
 </tbody></table>
 
 ### 更新日志
+### 1.5.1 - 2015/05/29
+1. 移除兼容旧版FastClick单击无效果的代码。
 
 ### 1.5.0 - 2016/05/25
 1. 插件不再处理上传结果，直接调用onUploaded()由用户处理。

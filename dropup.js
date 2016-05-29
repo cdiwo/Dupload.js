@@ -1,12 +1,12 @@
 /**
  * HTML5 Based File Uploader Plugin. (Phototype JavaScript)
- * Version: 1.5.0
+ * Version: 1.5.1
  * Description: HTML5 input selected or drop files to mutilpile upload.
  * Author: David Wei <weiguangchun@gmail.com>
  * Copyright: (c)2014-2016 CDIWO Inc. All Copyright Reserved. 
  * Github: https://github.com/cdiwo/Dropup
  * CreateDate: 2014-10-24 15:30
- * UpdateDate: 2016-05-25 0:05
+ * UpdateDate: 2016-05-29 22:40
  */
 
 (function() {
@@ -18,7 +18,7 @@
     var Dropup = function(container, params) {
 
         var du = this;
-        du.version = "1.5.0";
+        du.version = "1.5.1";
 
         // 状态常量
         var QUEUED = "queued";
@@ -43,7 +43,6 @@
             fileInput: null, // file控件
             fileDataName: 'file', // file数据名
             clickable: true, // 拖拽敏感区域是否可点击
-            usedFastClick: false, // 是否使用了FastClick
             txtFileTooBig: "文件上传限制最大为{{maxFilesize}}.",
             txtInvalidFileType: "不允许的文件类型",
             txtMaxFilesExceeded: "最多能上传{{maxFiles}}个文件",
@@ -321,7 +320,6 @@
                 input.setAttribute('type', 'file');
                 input.setAttribute('accept', 'image/*');
                 input.setAttribute('capture', 'camera');
-                input.setAttribute('stype', 'display:none;');
 
                 du.fileInput = input;
             }
@@ -341,15 +339,13 @@
             if (du.params.clickable && du.fileInput) {
                 // 绑定容器click事件
                 du.container.addEventListener("click", function(e) {
-                    // 兼容旧版FastClick单击无效果的问题
-                    if(du.params.usedFastClick) {
-                        setTimeout(function() {
-                            du.fileInput.click();
-                        }, 1000);// 必须为1000ms
-                    } else {
-                        du.fileInput.click();
-                    }
+                    du.fileInput.click();
                 });
+
+                // 阻止file控件click事件冒泡，再次触发container的click事件，形成事件死循环
+                du.fileInput.addEventListener("click", function(e) {
+                    e.stopPropagation();
+                }, false);
 
                 // 绑定文件选择器change事件
                 du.fileInput.addEventListener("change", function(e) {
