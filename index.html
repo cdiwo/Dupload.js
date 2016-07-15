@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>HTML5 Uploader</title>
+    <script src="dropup.js"></script>
+    <script>
+    window.onload = function() {
+        new Dropup('.container', {
+            onDrop: function(file) {
+                console.log(file.name)
+            }
+        })
+    }
+        
+    </script>
+</head>
+<body>
+    <div class="container" style="width:300px; height: 200px; margin: 100px auto; border: 1px solid gray;"></div>
+</body>
+</html>

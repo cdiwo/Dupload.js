@@ -29,17 +29,23 @@ __提示:__</br>
 2、android系统选择文件，file input要添加capture="camera"属性，才能打开相机</br>
 3、未添加file控件html代码，且未指定fileInput参数，插件会自动生成一个图片选择控件</br>
 __注意:__</br>
-1、添加了file控件html代码，必须指定fileInput参数，否则会触发两次`click`事件，出现2次文件选择器。</br>
-2、若使用了`FastClick`插件，必须在file控件父元素添加class`needsclick`，否则container内部分甚至全部区域点击无效。
+1、添加了file控件html代码，必须指定fileInput参数，否则会触发两次 `click` 事件，出现2次文件选择器。</br>
+2、若使用了 `FastClick` 插件，__必须__在file控件父元素添加class `needsclick` ，否则container内部分甚至全部区域点击无效。
 ```html
 <div class="container" style="width: 200px; height:200px; border: 1px solid black;">
     <input class="du-fileinput" type="file" accept="image/*" capture="camera" style="display:none;" />
 </div>
+__建议:__</br>
+HTML中不添加file控制代码，由插件自动生成
+
+
 ```
 ### Javascript代码
+
 ```js
 new Dropup(container, params);
 ```
+
 Example：
 ```js
 new Dropup(".container", {
@@ -61,6 +67,7 @@ new Dropup(".container", {
     }
 });
 ```
+
 ### 服务器端
 数据返回格式没有要求，不过通常我们为了方便前端处理，都返回JSON格式。
 
@@ -107,16 +114,28 @@ new Dropup(".container", {
   <td>提交方式</td>
 </tr>
 <tr>
-  <td>multipart_params</td>
-  <td>object</td>
-  <td>{}</td>
-  <td>表单参数，和上传请求同时发送</td>
-</tr>
-<tr>
   <td>withCredentials</td>
   <td>boolean</td>
   <td>false</td>
   <td>支持跨域发送cookies</td>
+</tr>
+<tr>
+  <td>requestHeaders</td>
+  <td>object</td>
+  <td>{}</td>
+  <td>请求头部信息</td>
+</tr>
+<tr>
+  <td>formParams</td>
+  <td>object</td>
+  <td>{}</td>
+  <td>参数表，和上传请求同时发送</td>
+</tr>
+<tr>
+  <td>fileDataName</td>
+  <td>string</td>
+  <td>file</td>
+  <td>文件上传域的name</td>
 </tr>
 <tr>
   <td>allowExts</td>
@@ -125,10 +144,16 @@ new Dropup(".container", {
   <td>允许的文件类型, 格式: 扩展名[,扩展名], 如: <code>jpeg,jpg,png,gif</code>,多个类型使用逗号<code>,</code>隔开</td>
 </tr>
 <tr>
+  <td>allowMimeTypes</td>
+  <td>string</td>
+  <td>null</td>
+  <td>允许的Mime类型, 格式: mime[,mime], 如: <code>image/*</code>,多个类型使用逗号<code>,</code>隔开</td>
+</tr>
+<tr>
   <td>maxFilesize</td>
   <td>int</td>
   <td>256</td>
-  <td>单个文件限制 KB</td>
+  <td>单个文件限制，单位: KB</td>
 </tr>
 <tr>
   <td>maxFiles</td>
@@ -165,12 +190,6 @@ new Dropup(".container", {
   <td>string or HTMLElement</td>
   <td>null</td>
   <td>file控件, 若container里存在file控件，则必填。反之可不填，会自动生成一个图片控件</td>
-</tr>
-<tr>
-  <td>fileDataName</td>
-  <td>string</td>
-  <td>file</td>
-  <td>file数据名</td>
 </tr>
 <tr>
   <td>clickable</td>
@@ -312,12 +331,24 @@ new Dropup(".container", {
   <td>setOption</td>
   <td>function(option, value)</td>
   <td></td>
-  <td>参数设置</td>
+  <td>参数设置，支持3种形式：<br/>
+    <code>setOption('name', 'value')</code><br/>
+    <code>setOption('name', {key: value})</code><br/>
+    <code>setOption({key: value, key2: {}})</code>
+  </td>
 </tr>
 </tbody></table>
 
 ### 更新日志
-### 1.5.1 - 2015/05/29
+### 1.5.2 - 2016/07/15
+
+1. 修复 `delete()` 方法，在 `files` 中找不到等于id的文件，会删除最后一个文件的BUG。
+2. 修改 `uploadFile(), setOption(), formatSize(), getSuffix(), guid()` 5个方法。
+3. 修改 `init()` 方法，自动生成的文件选择器会依赖 `multi`, `allowMimeTypes` 参数。
+4. 替换 `multipart_params` 参数为 `formParams`。
+5. 新增 `requestHeaders`, `allowMimeTypes` 2个可选参数。
+
+### 1.5.1 - 2016/05/29
 1. 移除兼容旧版FastClick单击无效果的代码。
 
 ### 1.5.0 - 2016/05/25

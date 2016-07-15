@@ -1,12 +1,12 @@
 /**
  * HTML5 Based File Uploader Plugin. (Phototype JavaScript)
- * Version: 1.5.1
- * Description: HTML5 input selected or drop files to mutilpile upload.
+ * Version: 1.5.2
+ * Description: HTML5 input selected or drop files to multiple upload.
  * Author: David Wei <weiguangchun@gmail.com>
  * Copyright: (c)2014-2016 CDIWO Inc. All Copyright Reserved. 
  * Github: https://github.com/cdiwo/Dropup
  * CreateDate: 2014-10-24 15:30
- * UpdateDate: 2016-05-29 22:40
+ * UpdateDate: 2016-07-15 20:00
  */
 
 (function() {
@@ -18,7 +18,7 @@
     var Dropup = function(container, params) {
 
         var du = this;
-        du.version = "1.5.1";
+        du.version = "1.5.2";
 
         // 状态常量
         var QUEUED = "queued";
@@ -31,17 +31,19 @@
         var defaults = {
             url: null, // ajax地址
             method: "POST", // 提交方式
-            multipart_params: {},// 表单参数
-            withCredentials: false,
-            allowExts: null, // 允许的文件类型, 格式: 扩展名[,扩展名], 如: jpeg,jpg,png,gif            
-            maxFilesize: 256, // 单个文件限制 KB
+            withCredentials: false,// 跨域时提交cookie
+            requestHeaders: {},// 请求头部信息
+            formParams: {},// 参数表
+            fileDataName: 'file', // 文件上传域的name
+            allowExts: null,// 允许的文件类型, 格式: 扩展名[,扩展名], 如: jpeg,jpg,png,gif
+            allowMimeTypes: null,// 可选择的Mime类型，对个用逗号隔开
+            maxFilesize: 256, // 单个文件限制，单位: KB
             maxFiles: null, // 最大上传数
             parallelUploads: 2, // 并行上传量
             auto: true, // 自动上传
             multi: true, // 允许上传多个照片
             init: true, // 默认初始化
             fileInput: null, // file控件
-            fileDataName: 'file', // file数据名
             clickable: true, // 拖拽敏感区域是否可点击
             txtFileTooBig: "文件上传限制最大为{{maxFilesize}}.",
             txtInvalidFileType: "不允许的文件类型",
@@ -51,7 +53,7 @@
             Callbacks:
             */
             onDragOver: function(){}, // 拖拽到敏感区域
-            onDragLeave: function(){}, // 离开敏感区域            
+            onDragLeave: function(){}, // 离开敏感区域
             onDrop: function(du, file){}, // 文件选择后
             onBefore: function(du, file){},// 上传前
             onProgress: function(du, file){}, // 上传进度
@@ -155,7 +157,7 @@
             for (var i = 0, file; i < acceptFiles.length; i++) {
                 file = acceptFiles[i];
 
-                // 添加文件属性                
+                // 添加文件属性
                 file.id = Dropup.guid();
                 file.src = Dropup.getSrc(file);
                 file.percent = 0;
@@ -174,6 +176,7 @@
         // 文件入队 ＝> 1、改变状态；2、处理队列
         du.enqueueFile = function(file) {
             file.status = QUEUED;
+            
             if (this.params.auto) {
                 return setTimeout(((function(_this) {
                     return function() {
@@ -242,65 +245,62 @@
         };
 
         // 单文件上传
-        du.uploadFile = function(file) {            
-            file.status = UPLOADING;
-
-            // 上传之前，可以调用setOption()
+        du.uploadFile = function(file) {
+            // 上传前回调，在函数中可调用 setOption() 修改参数
             du.params.onBefore(du, file);
 
+            // 创建 XMLHttpRequest 对象
             var xhr = new XMLHttpRequest();
             file.xhr = xhr;
+            file.status = UPLOADING;
             file.startTime = new Date().getTime();
 
+            // 初始化 HTTP 请求参数，但是并不发送请求
             xhr.open(du.params.method, du.params.url, true);
+            // 跨域时，是否允许携带cookie
             xhr.withCredentials = !!du.params.withCredentials;
-
-            if (xhr.upload) {
-                // 上传中
-                xhr.upload.addEventListener("progress", function(e) {
-                    if(e.lengthComputable) {
-                        file.speed = (e.loaded / (new Date().getTime() - file.startTime)).toFixed(2) + "KB\/s";
-                        file.percent = (e.loaded / e.total * 100).toFixed(2);
-                        du.params.onProgress(du, file);
-                    }
-                }, false);
-
-                // 上传成功
-                xhr.addEventListener('load', function(e) {
-                    du.uploadComplete(file, xhr.responseText);
-                    if (du.getQueuedFiles().length === 0
-                            && du.getUploadingFiles().length === 0) {
-                        // 全部完毕
-                        du.params.onComplete(du);
-                    }
-                }, false);
-
-                // 上传失败
-                xhr.addEventListener('error', function(e) {
-                    du.uploadError(file, xhr.responseText);
-                }, false);
-
-                // 上传中止
-                xhr.addEventListener('abort', function(e) {
-                    du.params.onCancel(du, file);
-                }, false);
-
-                // FormData属于XMLHttpRequest Level 2的，
-                // 它可以很快捷的模拟Form表单数据并通过AJAX发送至后端，
-                // FF5+，Chrome12+
-                var formData = new FormData();
-
-                // 迭代追加参数
-                var params = du.params.multipart_params;
-                for (var key in params) {
-                    formData.append(key, params[key]);
-                }
-
-                formData.append(du.params.fileDataName, file);
-
-                xhr.send(formData);
+            // 设置请求头部信息
+            for (var key in du.params.requestHeaders) {
+                xhr.setRequestHeader(key, du.params.requestHeaders[key]);
             }
-        };
+
+            // 注册相关事件回调处理函数
+            xhr.upload.onprogress = function(e) {
+                if(e.lengthComputable) {
+                    file.speed = (e.loaded / (new Date().getTime() - file.startTime)).toFixed(2) + "KB\/s";
+                    file.percent = (e.loaded / e.total * 100).toFixed(2);
+                    du.params.onProgress(du, file);
+                }
+            };
+            xhr.onload = function(e) {// 这里readyState = 4
+                du.uploadComplete(file, this.responseText);
+                if (du.getQueuedFiles().length === 0
+                        && du.getUploadingFiles().length === 0) {
+                    // 全部完毕
+                    du.params.onComplete(du);
+                }
+            };
+            xhr.onerror = function(e) {
+                du.params.onError(du, file, this.statusText);
+            };
+            xhr.onabort = function(e) {
+                du.params.onCancel(du, file);
+            };
+
+            // FormData 属于 XMLHttpRequest Level 2 的，
+            // 它可以很快捷的模拟Form表单数据并通过AJAX发送至后端，
+            // FF5+，Chrome12+
+            var formData = new FormData();            
+            // 添加上传文件
+            formData.append(du.params.fileDataName, file);
+            // 添加上传请求的参数表
+            for (var key in du.params.formParams) {
+                formData.append(key, du.params.formParams[key]);
+            }
+
+            // 发送 HTTP 请求
+            xhr.send(formData);
+        }
 
         // 初始化
         du.init = function() {
@@ -314,14 +314,21 @@
             if(typeof du.fileInput === "string") {
                 du.fileInput = document.querySelector(du.fileInput);
             }
-            // 如果未设置，初始化一个图片选择控件                
+            // 如果未设置，自动生成文件选择器
             if (!(du.fileInput && (du.fileInput.nodeType !== null))) {
-                var input = document.createElement('input');
-                input.setAttribute('type', 'file');
-                input.setAttribute('accept', 'image/*');
-                input.setAttribute('capture', 'camera');
+                du.fileInput = (function() {
+                    var input = document.createElement('input');
+                    // 默认设置
+                    input.setAttribute('type', 'file');
+                    input.setAttribute('accept', 'image/*');
+                    input.setAttribute('capture', 'camera');
 
-                du.fileInput = input;
+                    // 可选设置
+                    du.params.multi && input.setAttribute('multiple', 'multiple');
+                    du.params.allowMimeTypes && input.setAttribute('accept', du.params.allowMimeTypes);
+
+                    return input;
+                })();
             }
 
             // 绑定容器的dragover、dragover、drop事件
@@ -370,8 +377,8 @@
         du.delete = function(id) {
             //查找文件
             var file, i = 0;
-            while (i < this.files.length && (file = this.files[i]).id !== id)
-                i++;
+            while (i < this.files.length && (file = this.files[i]).id !== id) i++;
+            if(!file || file.id !== id) return false;
 
             // 取消正在上传的文件
             if (file.status === UPLOADING) {
@@ -392,18 +399,21 @@
                 return this.processQueue();
             }
         };
-        // 设置可选参数
+        // 设置可选参数, 支持3种形式
+        // setOption('name', 'value')
+        // setOption('name', {key: value})
+        // setOption({key: value, key2: {}})
         du.setOption = function(option, value) {
             function _setOption(option, value) {
-                if(option == 'multipart_params') {
+                if(typeof value === 'object') {
                     for(var key in value) {
-                        du.params.multipart_params[key] = value[key];
+                        du.params[option][key] = value[key];
                     }
                 } else {
                     du.params[option] = value;
                 }
             }
-            if (typeof(option) === 'object') {
+            if (typeof option === 'object') {
                 for(var key in option) {
                     _setOption(key, option[key]);
                 }
@@ -412,7 +422,7 @@
             }
         };
         du.getOption = function(key) {
-            return !key ? du.params : du.params[key];
+            return !key ? this.params : this.params[key];
         }
 
         /* 工具方法 */
@@ -422,35 +432,30 @@
             var ua = navigator.userAgent.toLowerCase();
             return ua.match(/iphone|ipad|ipod|android|symbianos|windows phone/) ? true : false;
         }
-        // 格式化文件大小[保留两位小数]
+        // 格式化文件大小, 返回带单位的字符串[保留两位小数]
         Dropup.formatSize = function(size) {
-            return size >= 1000000 ? Math.round(size / 10000) / 100 + 'MB' : (size >= 1000 ? Math.round(size / 10) / 100 + 'KB' : size + 'B');
+            var unit, units = ['B', 'KB', 'MB'];
+            while ((unit = units.shift()) && size > 1024) size = size / 1024;
+            return (unit === 'B' ? size : size.toFixed(2)) + unit;
         };
-        // 生成唯一ID
-        Dropup.guid = function(len) {            
+        // 生成唯一ID => 前缀 + 当前时间 + 随机数 = 长度
+        Dropup.guid = function(len, prefix) {
             var chars = 'ABCDEFGHJKMNPQRSTWXYZabcdefhijkmnprstwxyz1234567890_-';
             var maxPos = chars.length;
-            var len = len || 32;
-            var str = '', i;
-            for (i = 0; i < len; i++) {
-                str += chars.charAt(Math.floor(Math.random() * maxPos));
+            var guid = (prefix || 'du_') + (+new Date()).toString(32).toUpperCase(), i = guid.length;
+            for (; i < (len || 32); i++) {
+                guid += chars.charAt(Math.floor(Math.random() * maxPos));
             }
-            return str;
+            return guid;
         }
         // 获取文件后缀名
         Dropup.getSuffix = function(filename) {
-            var pos = filename.lastIndexOf('.'),
-                suffix = '';
-            if (pos != -1) {
-                suffix = filename.substring(pos)
-            }
-            return suffix;
+            return /\.([^.]+)$/.exec(filename) ? RegExp.$1.toLowerCase() : '';
         }
-
         //获取文件Src
         Dropup.getSrc = function(file) {
             if (file.type.indexOf("image") === 0
-                || (!file.type && /\.(?:jpg|jpeg|png|gif)$/.test(file.name.toLowerCase()))) {
+                || (!file.type && /\.(?:jpg|jpeg|png|gif|bmp)$/.test(file.name.toLowerCase()))) {
                 return Dropup.getImageSrc(file)
             }
             return "";
