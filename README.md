@@ -35,11 +35,11 @@ __注意:__</br>
 <div class="container" style="width: 200px; height:200px; border: 1px solid black;">
     <input class="du-fileinput" type="file" accept="image/*" capture="camera" style="display:none;" />
 </div>
+```
 __建议:__</br>
 HTML中不添加file控制代码，由插件自动生成
 
 
-```
 ### Javascript代码
 
 ```js
