@@ -31,9 +31,10 @@ __提示:__</br>
 __注意:__</br>
 1、添加了file控件html代码，必须指定fileInput参数，否则会触发两次 `click` 事件，出现2次文件选择器。</br>
 2、若使用了 `FastClick` 插件，__必须__在file控件父元素添加class `needsclick` ，否则container内部分甚至全部区域点击无效。
+3、最新 `Chrome` 版本 `52.0.2743.116 (64-bit)`, file的accept不兼容 `image/*`, 点击后弹出会有10s左右延迟。
 ```html
 <div class="container" style="width: 200px; height:200px; border: 1px solid black;">
-    <input class="du-fileinput" type="file" accept="image/*" capture="camera" style="display:none;" />
+    <input class="du-fileinput" type="file" accept="image/jpeg,image/jpg,image/png" capture="camera" style="display:none;" />
 </div>
 ```
 __建议:__</br>
@@ -340,8 +341,10 @@ new Dropup(".container", {
 </tbody></table>
 
 ### 更新日志
-### 1.5.2 - 2016/07/15
+### 1.5.3 - 2016/08/19
+1. 修复 `Chrome` 版本 `52.0.2743.116 (64-bit)`, file点击触发后弹出有10s左右延迟的问题。
 
+### 1.5.2 - 2016/07/15
 1. 修复 `delete()` 方法，在 `files` 中找不到等于id的文件，会删除最后一个文件的BUG。
 2. 修改 `uploadFile(), setOption(), formatSize(), getSuffix(), guid()` 5个方法。
 3. 修改 `init()` 方法，自动生成的文件选择器会依赖 `multi`, `allowMimeTypes` 参数。

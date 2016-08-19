@@ -1,12 +1,12 @@
 /**
  * HTML5 Based File Uploader Plugin. (Phototype JavaScript)
- * Version: 1.5.2
+ * Version: 1.5.3
  * Description: HTML5 input selected or drop files to multiple upload.
  * Author: David Wei <weiguangchun@gmail.com>
  * Copyright: (c)2014-2016 CDIWO Inc. All Copyright Reserved. 
  * Github: https://github.com/cdiwo/Dropup
  * CreateDate: 2014-10-24 15:30
- * UpdateDate: 2016-07-15 20:00
+ * UpdateDate: 2016-08-19 12:00
  */
 
 (function() {
@@ -320,7 +320,7 @@
                     var input = document.createElement('input');
                     // 默认设置
                     input.setAttribute('type', 'file');
-                    input.setAttribute('accept', 'image/*');
+                    input.setAttribute('accept', 'image/jpeg,image/jpg,image/png,image/gif');
                     input.setAttribute('capture', 'camera');
 
                     // 可选设置
