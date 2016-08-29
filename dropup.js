@@ -1,6 +1,6 @@
 /**
  * HTML5 Based File Uploader Plugin. (Phototype JavaScript)
- * Version: 1.5.3
+ * Version: 1.5.4
  * Description: HTML5 input selected or drop files to multiple upload.
  * Author: David Wei <weiguangchun@gmail.com>
  * Copyright: (c)2014-2016 CDIWO Inc. All Copyright Reserved. 
@@ -18,7 +18,7 @@
     var Dropup = function(container, params) {
 
         var du = this;
-        du.version = "1.5.3";
+        du.version = "1.5.4";
 
         // 状态常量
         var QUEUED = "queued";
@@ -34,8 +34,8 @@
             withCredentials: false,// 跨域时提交cookie
             requestHeaders: {},// 请求头部信息
             formParams: {},// 参数表
-            dataType: 'string',// 返回数据类型: json, string
-            fileDataName: 'file', // 文件上传域的name
+            dataType: "text",// 返回数据类型: text, json
+            fileDataName: "file", // 文件上传域的name
             allowExts: null,// 允许的文件类型, 格式: 扩展名[,扩展名], 如: jpeg,jpg,png,gif
             allowMimeTypes: null,// 可选择的Mime类型，对个用逗号隔开
             maxFilesize: 256, // 单个文件限制，单位: KB
@@ -215,7 +215,7 @@
             var ret;
             if((ret = this.params.onUploaded(du, file, responseText))) {
                 if(ret === true) {
-                    this.params.onSuccess(du, file, '上传成功');
+                    this.params.onSuccess(du, file, "上传成功");
                 } else {
                     this.params.onError(du, file, ret);
                 }
@@ -250,7 +250,7 @@
             // 上传前回调，在函数中可调用 setOption() 修改参数
             var ret;
             if((ret = this.params.onBefore(du, file))) {
-                if(typeof ret === 'string') {
+                if(typeof ret === "string") {
                     return this.params.onError(du, file, ret);
                 }
             }
@@ -280,7 +280,7 @@
             };
             xhr.onload = function(e) {// 这里readyState = 4
                 var response = this.responseText;
-                if(du.params.dataType === 'json') {
+                if(du.params.dataType === "json") {
                     response = JSON.parse(response);
                 }
                 

@@ -133,6 +133,12 @@ new Dropup(".container", {
   <td>参数表，和上传请求同时发送</td>
 </tr>
 <tr>
+  <td>dataType</td>
+  <td>string</td>
+  <td>text</td>
+  <td>返回数据类型: text, json</td>
+</tr>
+<tr>
   <td>fileDataName</td>
   <td>string</td>
   <td>file</td>
@@ -317,6 +323,12 @@ new Dropup(".container", {
   <th colspan="4">外部方法</th>
 </tr>
 <tr>
+  <td>select</td>
+  <td>function()</td>
+  <td></td>
+  <td>文件选择，如果容器<code>clickable=false</code>，可手动调用此方法，触发fileinput的click事件</td>
+</tr>
+<tr>
   <td>start</td>
   <td>function()</td>
   <td></td>
@@ -341,8 +353,12 @@ new Dropup(".container", {
 </tbody></table>
 
 ### 更新日志
+### 1.5.4 - 2016/08/29
+1. 新增 `dataType` 可选参数。
+2. 新增 `select()` 外部方法，用于触发 `fileinput` 的click事件。
+
 ### 1.5.3 - 2016/08/19
-1. 修复 `Chrome` 版本 `52.0.2743.116 (64-bit)`, file点击触发后弹出有10s左右延迟的问题。
+1. 修复 `Chrome` 版本 `52.0.2743.116 (64-bit)`, `fileinput` 点击触发后弹出有10s左右延迟的问题。
 
 ### 1.5.2 - 2016/07/15
 1. 修复 `delete()` 方法，在 `files` 中找不到等于id的文件，会删除最后一个文件的BUG。
