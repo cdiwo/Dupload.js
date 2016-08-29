@@ -6,7 +6,7 @@
  * Copyright: (c)2014-2016 CDIWO Inc. All Copyright Reserved. 
  * Github: https://github.com/cdiwo/Dropup
  * CreateDate: 2014-10-24 15:30
- * UpdateDate: 2016-08-19 12:00
+ * UpdateDate: 2016-08-29 21:50
  */
 
 (function() {
@@ -18,7 +18,7 @@
     var Dropup = function(container, params) {
 
         var du = this;
-        du.version = "1.5.2";
+        du.version = "1.5.3";
 
         // 状态常量
         var QUEUED = "queued";
@@ -34,6 +34,7 @@
             withCredentials: false,// 跨域时提交cookie
             requestHeaders: {},// 请求头部信息
             formParams: {},// 参数表
+            dataType: 'string',// 返回数据类型: json, string
             fileDataName: 'file', // 文件上传域的name
             allowExts: null,// 允许的文件类型, 格式: 扩展名[,扩展名], 如: jpeg,jpg,png,gif
             allowMimeTypes: null,// 可选择的Mime类型，对个用逗号隔开
@@ -247,7 +248,12 @@
         // 单文件上传
         du.uploadFile = function(file) {
             // 上传前回调，在函数中可调用 setOption() 修改参数
-            du.params.onBefore(du, file);
+            var ret;
+            if((ret = this.params.onBefore(du, file))) {
+                if(typeof ret === 'string') {
+                    return this.params.onError(du, file, ret);
+                }
+            }
 
             // 创建 XMLHttpRequest 对象
             var xhr = new XMLHttpRequest();
@@ -273,7 +279,13 @@
                 }
             };
             xhr.onload = function(e) {// 这里readyState = 4
-                du.uploadComplete(file, this.responseText);
+                var response = this.responseText;
+                if(du.params.dataType === 'json') {
+                    response = JSON.parse(response);
+                }
+                
+                du.uploadComplete(file, response);
+
                 if (du.getQueuedFiles().length === 0
                         && du.getUploadingFiles().length === 0) {
                     // 全部完毕
@@ -342,22 +354,20 @@
                 du.addFiles(e);
             }, false);
 
-            // 文件选择控件选择
-            if (du.params.clickable && du.fileInput) {
-                // 绑定容器click事件
+            // 绑定文件选择器change事件
+            // 阻止file控件click事件冒泡，避免再次触发container的click事件，形成事件死循环
+            du.fileInput.addEventListener("change", function(e) {
+                du.addFiles(e);
+            }, false);            
+            du.fileInput.addEventListener("click", function(e) {
+                e.stopPropagation();
+            }, false);
+
+            // 容器点击可触发上传，则绑定容器click事件
+            if (du.params.clickable) {                
                 du.container.addEventListener("click", function(e) {
                     du.fileInput.click();
-                });
-
-                // 阻止file控件click事件冒泡，再次触发container的click事件，形成事件死循环
-                du.fileInput.addEventListener("click", function(e) {
-                    e.stopPropagation();
-                }, false);
-
-                // 绑定文件选择器change事件
-                du.fileInput.addEventListener("change", function(e) {
-                    du.addFiles(e);
-                }, false);
+                });       
             }
 
             // 检测是否支持HTML5上传
@@ -368,7 +378,11 @@
 
         // ////////* 外部事件 *//////////
 
-        // 开始上传，一般事件绑定在“上传按钮”上
+        // 选择文件，一般绑定在“添加文件按钮”上
+        du.select = function() {
+            du.fileInput.click();
+        };
+        // 开始上传，一般绑定在“开始上传按钮”上
         du.start = function() {
             this.processQueue();
         };
