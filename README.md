@@ -24,19 +24,22 @@ define(['dropup'], function(Dropup) {
 
 
 ### HTML代码
-__提示:__</br>
-1、上传多个文件时，file input要添加multiple属性</br>
-2、android系统选择文件，file input要添加capture="camera"属性，才能打开相机</br>
-3、未添加file控件html代码，且未指定fileInput参数，插件会自动生成一个图片选择控件</br>
-__注意:__</br>
-1、添加了file控件html代码，必须指定fileInput参数，否则会触发两次 `click` 事件，出现2次文件选择器。</br>
-2、若使用了 `FastClick` 插件，__必须__在file控件父元素添加class `needsclick` ，否则container内部分甚至全部区域点击无效。
-3、最新 `Chrome` 版本 `52.0.2743.116 (64-bit)`, file的accept不兼容 `image/*`, 点击后弹出会有10s左右延迟。
+__提示:__
+1. 上传多个文件时，file input要添加multiple属性。
+2. android系统选择文件，file input要添加capture="camera"属性，才能打开相机。
+3. 未添加file控件html代码，且未指定fileInput参数，插件会自动生成一个图片选择控件。
+
+__注意:__
+1. 添加了file控件html代码，必须指定fileInput参数，否则会触发两次 `click` 事件，出现2次文件选择器。
+2. 若使用了 `FastClick` 插件，__必须__在file控件父元素添加class `needsclick` ，否则container内部分甚至全部区域点击无效。
+3. 最新 `Chrome` 版本 `52.0.2743.116 (64-bit)`, file的accept不兼容 `image/*`, 点击后弹出会有10s左右延迟。
+
 ```html
 <div class="container" style="width: 200px; height:200px; border: 1px solid black;">
     <input class="du-fileinput" type="file" accept="image/jpeg,image/jpg,image/png" capture="camera" style="display:none;" />
 </div>
 ```
+
 __建议:__</br>
 HTML中不添加file控制代码，由插件自动生成
 
