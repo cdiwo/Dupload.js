@@ -1,24 +1,24 @@
 /**
  * HTML5 Based File Uploader Plugin. (Phototype JavaScript)
- * Version: 1.5.4
+ * Version: 2.0.0
  * Description: HTML5 input selected or drop files to multiple upload.
  * Author: David Wei <weiguangchun@gmail.com>
  * Copyright: (c)2014-2016 CDIWO Inc. All Copyright Reserved. 
- * Github: https://github.com/cdiwo/Dropup
+ * Github: https://github.com/cdiwo/Dupload.js
  * CreateDate: 2014-10-24 15:30
- * UpdateDate: 2016-08-29 21:50
+ * UpdateDate: 2016-12-20 23:00
  */
 
 (function() {
 
     "use strict";
     /*=========================================
-    ************   Drop Uploader   ************
+    **************   Duploader   **************
     ==========================================*/
-    var Dropup = function(container, params) {
+    var Dupload = function(container, params) {
 
         var du = this;
-        du.version = "1.5.4";
+        du.version = "2.0.0";
 
         // 状态常量
         var QUEUED = "queued";
@@ -32,10 +32,11 @@
             url: null, // ajax地址
             method: "POST", // 提交方式
             withCredentials: false,// 跨域时提交cookie
-            requestHeaders: {},// 请求头部信息
-            formParams: {},// 参数表
-            dataType: "text",// 返回数据类型: text, json
-            fileDataName: "file", // 文件上传域的name
+            header: {},// 请求头部信息
+            formData: {},// 参数表
+            dataType: "json",// 返回数据类型: text, json
+            fileVal: "file", // 文件上传域的name            
+            fileInput: null, // file控件css选择器
             allowExts: null,// 允许的文件类型, 格式: 扩展名[,扩展名], 如: jpeg,jpg,png,gif
             allowMimeTypes: null,// 可选择的Mime类型，对个用逗号隔开
             maxFilesize: 256, // 单个文件限制，单位: KB
@@ -44,7 +45,6 @@
             auto: true, // 自动上传
             multi: true, // 允许上传多个照片
             init: true, // 默认初始化
-            fileInput: null, // file控件
             clickable: true, // 拖拽敏感区域是否可点击
             txtFileTooBig: "文件上传限制最大为{{maxFilesize}}.",
             txtInvalidFileType: "不允许的文件类型",
@@ -114,8 +114,8 @@
 
         // 过滤器
         du.filter = function(files) {
-            var arrFiles = [];
-            for (var i = 0, file; file = files[i]; i++) {
+            var i = 0, arrFiles = [], file;
+            while ((file = files[i++])) {
                 var exts = (this.params.allowExts || '').replace(/,/g, '|').replace(/\s/g, '');
                 var regExp = new RegExp("\\.(?:" + exts + ")$");
 
@@ -125,7 +125,7 @@
                 } else if(file.size >= this.params.maxFilesize * 1000) {
                     file.status = ERROR;
                     file.errmsg = this.params.txtFileTooBig.replace('{{maxFilesize}}',
-                        Dropup.formatSize(this.params.maxFilesize * 1000));
+                        Util.formatSize(this.params.maxFilesize * 1000));
                 }
                 arrFiles.push(file);
             }
@@ -149,8 +149,8 @@
             }
 
             // 必须小于最大上传量
-            if (this.params.maxFiles
-                    && (this.params.maxFiles < this.files.length + acceptFiles.length)) {
+            if (this.params.maxFiles && 
+                (this.params.maxFiles < this.files.length + acceptFiles.length)) {
                 alert(this.params.txtMaxFilesExceeded.replace('{{maxFiles}}', this.params.maxFiles));
                 return false;
             }
@@ -159,8 +159,8 @@
                 file = acceptFiles[i];
 
                 // 添加文件属性
-                file.id = Dropup.guid();
-                file.src = Dropup.getSrc(file);
+                file.id = Util.guid();
+                file.src = Util.getSrc(file);
                 file.percent = 0;
 
                 this.files.push(file);
@@ -266,9 +266,19 @@
             // 跨域时，是否允许携带cookie
             xhr.withCredentials = !!du.params.withCredentials;
             // 设置请求头部信息
-            for (var key in du.params.requestHeaders) {
-                xhr.setRequestHeader(key, du.params.requestHeaders[key]);
+            for (var key in du.params.header) {
+                xhr.setRequestHeader(key, du.params.header[key]);
             }
+            // FormData 属于 XMLHttpRequest Level 2 的，
+            // 它可以很快捷的模拟Form表单数据并通过AJAX发送至后端，
+            // FF5+，Chrome12+
+            var formData = new FormData();
+            // 添加默认请求参数表
+            for (var key in du.params.formData) {
+                formData.append(key, du.params.formData[key]);
+            }
+            // 添加上传文件
+            formData.append(du.params.fileVal, file);
 
             // 注册相关事件回调处理函数
             xhr.upload.onprogress = function(e) {
@@ -286,8 +296,8 @@
                 
                 du.uploadComplete(file, response);
 
-                if (du.getQueuedFiles().length === 0
-                        && du.getUploadingFiles().length === 0) {
+                if (du.getQueuedFiles().length === 0 && 
+                    du.getUploadingFiles().length === 0) {
                     // 全部完毕
                     du.params.onComplete(du);
                 }
@@ -299,20 +309,9 @@
                 du.params.onCancel(du, file);
             };
 
-            // FormData 属于 XMLHttpRequest Level 2 的，
-            // 它可以很快捷的模拟Form表单数据并通过AJAX发送至后端，
-            // FF5+，Chrome12+
-            var formData = new FormData();            
-            // 添加上传文件
-            formData.append(du.params.fileDataName, file);
-            // 添加上传请求的参数表
-            for (var key in du.params.formParams) {
-                formData.append(key, du.params.formParams[key]);
-            }
-
             // 发送 HTTP 请求
             xhr.send(formData);
-        }
+        };
 
         // 初始化
         du.init = function() {
@@ -321,7 +320,7 @@
                 du.container = document.querySelector(du.container);
             }
             if (!(du.container && (du.container.nodeType !== null))) {
-                throw new Error("Invalid dropup container.");
+                throw new Error("Uploader container invalid!");
             }
             if(typeof du.fileInput === "string") {
                 du.fileInput = document.querySelector(du.fileInput);
@@ -396,8 +395,8 @@
 
             // 取消正在上传的文件
             if (file.status === UPLOADING) {
-                if (this.params.txtCancelUploadTips
-                    && !window.confirm(this.params.txtCancelUploadTips)) {
+                if (this.params.txtCancelUploadTips && 
+                    !window.confirm(this.params.txtCancelUploadTips)) {
                     return false;
                 }
 
@@ -437,48 +436,59 @@
         };
         du.getOption = function(key) {
             return !key ? this.params : this.params[key];
-        }
+        };
 
-        /* 工具方法 */
+        // 默认初始化
+        if (du.params.init) this.init();
 
+        // 返回实例
+        return du;
+    },
+
+    /**********
+     * 工具类 *
+     **********/
+    Util = {
         // 检测是否是移动端
-        Dropup.isMobileDevice = function() {
+        isMobileDevice: function() {
             var ua = navigator.userAgent.toLowerCase();
             return ua.match(/iphone|ipad|ipod|android|symbianos|windows phone/) ? true : false;
-        }
+        },
         // 格式化文件大小, 返回带单位的字符串[保留两位小数]
-        Dropup.formatSize = function(size) {
+        formatSize: function(size) {
             var unit, units = ['B', 'KB', 'MB'];
-            while ((unit = units.shift()) && size > 1024) size = size / 1024;
+            while ((unit = units.shift()) && size > 1024) {
+                size = size / 1024;
+            }
             return (unit === 'B' ? size : size.toFixed(2)) + unit;
-        };
+        },
         // 生成唯一ID => 前缀 + 当前时间 + 随机数 = 长度
-        Dropup.guid = function(len, prefix) {
+        guid: function(len, prefix) {
             var chars = 'ABCDEFGHJKMNPQRSTWXYZabcdefhijkmnprstwxyz1234567890_-';
             var maxPos = chars.length;
             var guid = (prefix || 'du_') + (+new Date()).toString(32).toUpperCase(), i = guid.length;
-            for (; i < (len || 32); i++) {
+            while (i++ < (len || 32)) {
                 guid += chars.charAt(Math.floor(Math.random() * maxPos));
             }
             return guid;
-        }
+        },
         // 获取文件后缀名
-        Dropup.getSuffix = function(filename) {
+        getSuffix: function(filename) {
             return /\.([^.]+)$/.exec(filename) ? RegExp.$1.toLowerCase() : '';
-        }
+        },
         //获取文件Src
-        Dropup.getSrc = function(file) {
-            if (file.type.indexOf("image") === 0
-                || (!file.type && /\.(?:jpg|jpeg|png|gif|bmp)$/.test(file.name.toLowerCase()))) {
-                return Dropup.getImageSrc(file)
+        getSrc: function(file) {
+            if (file.type.indexOf("image") === 0 || 
+                (!file.type && /\.(?:jpg|jpeg|png|gif|bmp)$/.test(file.name.toLowerCase()))) {
+                return Util.getImageSrc(file);
             }
             return "";
-        };
+        },
         // 读取图片src
-        Dropup.getImageSrc = function(file) {
+        getImageSrc: function(file) {
             var src = null;
             // 多浏览器兼容性
-            if(Dropup.isMobileDevice()) {
+            if(this.isMobileDevice()) {
                 src = "";
             } else if (window.URL.createObjectURL) {// safari
                 // FF4+
@@ -500,23 +510,26 @@
                 reader.readAsDataURL(file);
             }
             return src;
-        };
+        }
+    };
 
-        // 默认初始化
-        if (du.params.init) this.init();
-
-        // 返回实例
-        return du;
+    // 静态方法
+    Dupload.create = function(container, config) {
+        if (typeof(container) === 'object') {
+            config = container;
+            container = config.container;
+        }
+        return new Dupload(container, config);
     };
 
     // exports [AMD/RequireJS/Global]
     if (typeof define === 'function' && define.amd) {
         define(function() {
-            return Dropup;
+            return Dupload;
         });
     } else if (typeof module !== 'undefined' && module.exports) {
-        module.exports = Dropup;
+        module.exports = Dupload;
     } else {
-        (typeof window !== 'undefined' ? window : this).Dropup = Dropup;
+        (typeof window !== 'undefined' ? window : this).Dupload = Dupload;
     }
 })();

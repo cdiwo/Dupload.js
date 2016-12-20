@@ -1,25 +1,25 @@
 # HTML5 Based File Uploader
-# Dropup
+# Dupload.js
 
 ## 使用方法
 
-##### 引入Dropup文件
+##### 引入Dupload文件
 
 CommonJS 方式引用
 ```js
-var Dropup = require('dropup');
+var Dupload = require('Dupload');
 ```
 
 AMD 方式引用
 ```js
-define(['dropup'], function(Dropup) {
+define(['Dupload'], function(Dupload) {
     // ...
 });
 ```
 
 全局方式，在HTML页面中引入:
 ```html
-<script src="dropup.min.js"></script>
+<script src="Dupload.min.js"></script>
 ```
 
 
@@ -49,15 +49,18 @@ HTML中不添加file控制代码，由插件自动生成
 ### Javascript代码
 
 ```js
-new Dropup(container, params);
+new Dupload(container, params);
 ```
 
 Example：
 ```js
-new Dropup(".container", {
+var options = {
     url: "http://localhost/upload",
-    fileInput: '.du-fileinput',
+    fileInput: '.du-fileinput',// 可不写，自动生成并绑定事件
     maxFilesize: 500,
+    onProgress: function(du, file) {
+      console.log(file.percent)
+    },
     onUploaded: function(du, file, response) {
         // your code to parse response
         // ...
@@ -71,7 +74,14 @@ new Dropup(".container", {
     onError: function(du, file, message) {
         alert(message);
     }
-});
+}
+// 方法一:
+var du = new Dupload(".container", options);// 返回实例对象，可做更多操作
+// 方法二:
+Dupload.create('.container', options);
+// 兼容方式
+options.container = '.container'
+Dupload.create(options);// 静态方法
 ```
 
 ### 服务器端
@@ -126,13 +136,13 @@ new Dropup(".container", {
   <td>支持跨域发送cookies</td>
 </tr>
 <tr>
-  <td>requestHeaders</td>
+  <td>header</td>
   <td>object</td>
   <td>{}</td>
   <td>请求头部信息</td>
 </tr>
 <tr>
-  <td>formParams</td>
+  <td>formData</td>
   <td>object</td>
   <td>{}</td>
   <td>参数表，和上传请求同时发送</td>
@@ -140,14 +150,20 @@ new Dropup(".container", {
 <tr>
   <td>dataType</td>
   <td>string</td>
-  <td>text</td>
+  <td>json</td>
   <td>返回数据类型: text, json</td>
 </tr>
 <tr>
-  <td>fileDataName</td>
+  <td>fileVal</td>
   <td>string</td>
   <td>file</td>
   <td>文件上传域的name</td>
+</tr>
+<tr>
+  <td>fileInput</td>
+  <td>string or HTMLElement</td>
+  <td>null</td>
+  <td>file控件css选择器, 若container里存在file控件，则必填。反之可不填，会自动生成一个图片控件</td>
 </tr>
 <tr>
   <td>allowExts</td>
@@ -196,12 +212,6 @@ new Dropup(".container", {
   <td>boolean</td>
   <td>true</td>
   <td>默认初始化</td>
-</tr>
-<tr>
-  <td>fileInput</td>
-  <td>string or HTMLElement</td>
-  <td>null</td>
-  <td>file控件, 若container里存在file控件，则必填。反之可不填，会自动生成一个图片控件</td>
 </tr>
 <tr>
   <td>clickable</td>
@@ -358,6 +368,13 @@ new Dropup(".container", {
 </tbody></table>
 
 ### 更新日志
+### 2.0.0 - 2016/12/20
+1. 新名字 `Dupload.js`
+2. 新增 `Dupload.create(container, params)` 静态方法
+3. 替换参数 `requestHeaders` => `headers`, `formParams` => 'formData',  `fileDataName` => `fileVal`
+4. 整理所有外部方法到新增的Util类中
+5. 修复部分Bug
+
 ### 1.5.4 - 2016/08/29
 1. 新增 `dataType` 可选参数。
 2. 新增 `select()` 外部方法，用于触发 `fileinput` 的click事件。
