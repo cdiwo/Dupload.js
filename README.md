@@ -7,19 +7,19 @@
 
 CommonJS 方式引用
 ```js
-var Dupload = require('Dupload');
+var Dupload = require('dupload');
 ```
 
 AMD 方式引用
 ```js
-define(['Dupload'], function(Dupload) {
+define(['dupload'], function(Dupload) {
     // ...
 });
 ```
 
 全局方式，在HTML页面中引入:
 ```html
-<script src="Dupload.min.js"></script>
+<script src="dupload.min.js"></script>
 ```
 
 
@@ -48,9 +48,6 @@ HTML中不添加file控制代码，由插件自动生成
 
 ### Javascript代码
 
-```js
-new Dupload(container, params);
-```
 
 Example：
 ```js
@@ -64,9 +61,9 @@ var options = {
     onUploaded: function(du, file, response) {
         // your code to parse response
         // ...
-        return false;// 不处理
-        return true;// 会调用onSuccess()
-        return "error";// 会调用onError()
+        return false;// 不做处理
+        return true;// 触发onSuccess()
+        return "error";// 触发onError()
     },
     onSuccess: function(du, file, response) {
         console.log(file);
@@ -368,6 +365,10 @@ Dupload.create(options);// 静态方法
 </tbody></table>
 
 ### 更新日志
+### 2.0.1 - 2016/12/21
+1. 调整部分代码
+2. 修复上传数量限制计算不准确的Bug
+
 ### 2.0.0 - 2016/12/20
 1. 新名字 `Dupload.js`
 2. 新增 `Dupload.create(container, params)` 静态方法

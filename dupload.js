@@ -1,12 +1,12 @@
 /**
  * HTML5 Based File Uploader Plugin. (Phototype JavaScript)
- * Version: 2.0.0
+ * Version: 2.0.1
  * Description: HTML5 input selected or drop files to multiple upload.
  * Author: David Wei <weiguangchun@gmail.com>
  * Copyright: (c)2014-2016 CDIWO Inc. All Copyright Reserved. 
  * Github: https://github.com/cdiwo/Dupload.js
  * CreateDate: 2014-10-24 15:30
- * UpdateDate: 2016-12-20 23:00
+ * UpdateDate: 2016-12-21 11:10
  */
 
 (function() {
@@ -18,7 +18,7 @@
     var Dupload = function(container, params) {
 
         var du = this;
-        du.version = "2.0.0";
+        du.version = "2.0.1";
 
         // 状态常量
         var QUEUED = "queued";
@@ -87,14 +87,16 @@
 
         // 根据文件状态获取
         du.getFilesWithStatus = function(status) {
-            var _ref = this.files, _results = [];
-            for (var i = 0, file; i < _ref.length; i++) {
-                file = _ref[i];
-                if (file.status === status) {
-                    _results.push(file);
+            var arr = [], i = 0, file;
+            if(typeof(status) === 'string') {
+                status = status.split(',');
+            }
+            while ((file = this.files[i++])) {
+                if (~status.indexOf(file.status)) {
+                    arr.push(file);
                 }
             }
-            return _results;
+            return arr;
         };
 
         // 获取已经入队的文件
@@ -149,8 +151,9 @@
             }
 
             // 必须小于最大上传量
+            var countFile = this.getFilesWithStatus([QUEUED, UPLOADING, UPLOADED, SUCCESS]);
             if (this.params.maxFiles && 
-                (this.params.maxFiles < this.files.length + acceptFiles.length)) {
+                (this.params.maxFiles < countFile.length + acceptFiles.length)) {
                 alert(this.params.txtMaxFilesExceeded.replace('{{maxFiles}}', this.params.maxFiles));
                 return false;
             }
@@ -215,30 +218,15 @@
             var ret;
             if((ret = this.params.onUploaded(du, file, responseText))) {
                 if(ret === true) {
+                    // 单个文件上传成功，触发onSuccess事件
+                    file.status = SUCCESS;
                     this.params.onSuccess(du, file, "上传成功");
                 } else {
+                    // 单个文件上传失败，触发onError事件
+                    file.status = ERROR;
                     this.params.onError(du, file, ret);
                 }
-            }
-
-            if (this.params.auto) {
-                this.processQueue();
-            }
-        };
-
-        // 单个文件上传成功，触发外部onSuccess事件
-        du.uploadSuccess = function(file, message) {
-            file.status = SUCCESS;
-            this.params.onSuccess(du, file, message);
-
-            if (this.params.auto) {
-                this.processQueue();
-            }
-        };
-        // 单个文件上传失败，触发外部onError事件
-        du.uploadError = function(file, message) {
-            file.status = ERROR;
-            this.params.onError(du, file, message);
+            } // else {} 不做处理 
 
             if (this.params.auto) {
                 this.processQueue();
@@ -533,3 +521,4 @@
         (typeof window !== 'undefined' ? window : this).Dupload = Dupload;
     }
 })();
+
