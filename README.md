@@ -177,8 +177,8 @@ Dupload.create(options);// 静态方法
 <tr>
   <td>maxFilesize</td>
   <td>int</td>
-  <td>256</td>
-  <td>单个文件限制，单位: KB</td>
+  <td>8192</td>
+  <td>单个文件限制，单位: KB，默认：8M</td>
 </tr>
 <tr>
   <td>maxFiles</td>
@@ -215,6 +215,39 @@ Dupload.create(options);// 静态方法
   <td>boolean</td>
   <td>true</td>
   <td>拖拽敏感区域是否可点击</td>
+</tr>
+<tr>
+  <td>compress</td>
+  <td>object</td>
+  <td>false</td>
+  <td>是否启用压缩功能</td>
+</tr>
+<tr>
+  <th colspan="4">compress 参数</th>
+</tr>
+<tr>
+  <td>width</td>
+  <td>int</td>
+  <td>1280</td>
+  <td>最大宽度</td>
+</tr>
+<tr>
+  <td>height</td>
+  <td>int</td>
+  <td>960</td>
+  <td>最大高度</td>
+</tr>
+<tr>
+  <td>quality</td>
+  <td>int</td>
+  <td>90</td>
+  <td>图片质量，只有type为`image/jpeg`的时候才有效</td>
+</tr>
+<tr>
+  <td>preserveHeaders</td>
+  <td>boolean</td>
+  <td>true</td>
+  <td>是否保留头部meta信息</td>
 </tr>
 <tr>
   <th colspan="4">提示文字(Tips Text)</th>
@@ -365,6 +398,12 @@ Dupload.create(options);// 静态方法
 </tbody></table>
 
 ### 更新日志
+
+### 2.1.0 - 2017/03/20
+1. 新增 `compress` 参数，使用HTML5进行JPEG图片压缩
+2. 修改 `maxFilesize` 参数，默认值为8M
+3. 移除移动端浏览器检测函数
+
 ### 2.0.1 - 2016/12/21
 1. 调整部分代码
 2. 修复上传数量限制计算不准确的Bug

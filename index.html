@@ -6,16 +6,42 @@
     <script src="dupload.js"></script>
     <script>
     window.onload = function() {
-        new Dropup('.container', {
-            onDrop: function(file) {
-                console.log(file.name)
+        var progressBar = document.querySelector('.progress-bar');
+        Dupload.create({
+            container: '.container',
+            url: 'http://localhost:5000/upload',
+            allowMimeTypes: "*",
+//            compress:false,
+            onProgress: function(du, file) {
+                progressBar.innerHTML = file.percent+'%';
+            },
+            onUploaded: function(du, file, res) {
+                if(res.code !== 0) return res.message;
+                file.url =  'http://localhost:5000/file/' + res.data.key;
+                console.log(file);
+
+                document.querySelector('img').setAttribute('src', file.url);
+
+                return true;
+            },
+            onError: function(du, file, error) {
+                alert(error);
             }
-        })
+        });
     }
         
     </script>
+    <style>
+        .container {
+            width:300px;
+            height: 200px;
+            margin: 100px auto;
+            border: 1px solid gray;
+        }
+    </style>
 </head>
 <body>
-    <div class="container" style="width:300px; height: 200px; margin: 100px auto; border: 1px solid gray;"></div>
+    <div class="progress-bar" style="text-align: center;"></div>
+    <div class="container"><img style="width: 100%; height: 100%;"/></div>
 </body>
 </html>
