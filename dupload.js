@@ -1,12 +1,12 @@
 /**
  * HTML5 Based File Uploader Plugin. (Phototype JavaScript)
- * Version: 2.1.0
+ * Version: 2.1.1
  * Description: HTML5 input selected or drop files to multiple upload.
  * Author: David Wei <weiguangchun@gmail.com>
  * Copyright: (c)2014-2017 CDIWO Inc. All Copyright Reserved.
  * Github: https://github.com/cdiwo/Dupload.js
  * CreateDate: 2014-10-24 15:30
- * UpdateDate: 2017-03-20 16:00
+ * UpdateDate: 2017-03-28 10:40
  */
 
 (function () {
@@ -18,7 +18,7 @@
     var Dupload = function (container, params) {
 
         var du = this;
-        du.version = "2.1.0";
+        du.version = "2.1.1";
 
         // 状态常量
         var QUEUED = "queued";
@@ -256,7 +256,7 @@
             // 只压缩 jpeg 图片格式。
             // gif 可能会丢失针
             // bmp png 基本上尺寸都不大，且压缩比比较小。
-            if (opts.compress && ~'image/jpeg,image/jpg'.indexOf(file.type) && !file._compressed) {
+            if (opts.compress && file.type && ~'image/jpeg,image/jpg'.indexOf(file.type) && !file._compressed) {
                 DImage.resize(file, opts.compress, function () {
                     du.uploadFile(file);
                 });
@@ -541,7 +541,8 @@
             };
 
             img.onerror = function () {
-                me.trigger('error');
+                // me.trigger('error');
+                console.log('image load error');
             };
 
             img.src = file.src;
@@ -637,7 +638,6 @@
                         buffer = me.dataURL2ArrayBuffer(base64);
                         buffer = me.updateImageHead(buffer, this._metas.imageHead);
                         blob = me.arrayBufferToBlob(buffer, this.type);
-                        console.log(blob)
                         return blob;
                     }
                 } else {
