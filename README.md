@@ -1,6 +1,8 @@
 # HTML5 Based File Uploader
 # Dupload.js
 
+`DImage` 相关代码已经从 `Dupload.js` 在 2.2.0 版本中独立出去，具体查看[DImage.js](https://github.com/cdiwo/DImage.js)
+
 ## 使用方法
 
 ##### 引入Dupload文件
@@ -22,6 +24,9 @@ define(['dupload'], function(Dupload) {
 <script src="dupload.min.js"></script>
 ```
 
+**注意：**
+
+`dupload.js` 中不包含 `dimage.js` 插件，无法使用 `compress` 功能，如需使用压缩请引入 `dupload.min.js`
 
 ### HTML代码
 __提示:__
@@ -220,34 +225,7 @@ Dupload.create(options);// 静态方法
   <td>compress</td>
   <td>object</td>
   <td>false</td>
-  <td>是否启用压缩功能</td>
-</tr>
-<tr>
-  <th colspan="4">compress 参数</th>
-</tr>
-<tr>
-  <td>width</td>
-  <td>int</td>
-  <td>1280</td>
-  <td>最大宽度</td>
-</tr>
-<tr>
-  <td>height</td>
-  <td>int</td>
-  <td>960</td>
-  <td>最大高度</td>
-</tr>
-<tr>
-  <td>quality</td>
-  <td>int</td>
-  <td>90</td>
-  <td>图片质量，只有type为`image/jpeg`的时候才有效</td>
-</tr>
-<tr>
-  <td>preserveHeaders</td>
-  <td>boolean</td>
-  <td>true</td>
-  <td>是否保留头部meta信息</td>
+  <td>是否启用压缩功能，具体配置详见<a href="https://github.com/cdiwo/DImage.js">DImage.js</a></td>
 </tr>
 <tr>
   <th colspan="4">提示文字(Tips Text)</th>
@@ -398,6 +376,10 @@ Dupload.create(options);// 静态方法
 </tbody></table>
 
 ### 更新日志
+
+### 2.2.0 - 2017/06/23
+1. 新增图片翻转功能
+2. 移除 `DImage` 相关代码，将图片压缩、翻转操作独立为一个组件 [`DImage.js`](https://github.com/cdiwo/DImage.js)
 
 ### 2.1.1 - 2017/03/28
 1. 修复360浏览器无法获取MIME类型时，会压缩非图片文件的BUG

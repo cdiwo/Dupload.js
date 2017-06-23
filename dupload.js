@@ -1,12 +1,12 @@
 /**
  * HTML5 Based File Uploader Plugin. (Phototype JavaScript)
- * Version: 2.1.1
+ * Version: 2.2.0
  * Description: HTML5 input selected or drop files to multiple upload.
  * Author: David Wei <weiguangchun@gmail.com>
  * Copyright: (c)2014-2017 CDIWO Inc. All Copyright Reserved.
  * Github: https://github.com/cdiwo/Dupload.js
- * CreateDate: 2014-10-24 15:30
- * UpdateDate: 2017-03-28 10:40
+ * CreateDate: 2017-03-20 15:30
+ * UpdateDate: 2017-06-23 17:50
  */
 
 (function () {
@@ -18,10 +18,11 @@
     var Dupload = function (container, params) {
 
         var du = this;
-        du.version = "2.1.1";
+        du.version = "2.2.0";
 
         // 状态常量
         var QUEUED = "queued";
+        var PROCESSING = 'processing';
         var UPLOADING = "uploading";
         var UPLOADED = "uploaded";
         var CANCELED = "canceled";
@@ -256,8 +257,20 @@
             // 只压缩 jpeg 图片格式。
             // gif 可能会丢失针
             // bmp png 基本上尺寸都不大，且压缩比比较小。
-            if (opts.compress && file.type && ~'image/jpeg,image/jpg'.indexOf(file.type) && !file._compressed) {
-                DImage.resize(file, opts.compress, function () {
+            if (typeof DImage !== 'undefined' && opts.compress && file.type && ~'image/jpeg,image/jpg'.indexOf(file.type) && !file._compressed) {
+
+                // 处理中，置为此状态避免异步时，重复处理 queued 状态的数据
+                file.status = PROCESSING;
+
+                DImage.create(file.source, opts.compress, function (me) {
+                    var blob = me.resize().rotate().getAsBlob();
+
+                    file.size = blob.size;
+                    file.source = blob;
+                    file.src = me.getAsBase64();
+
+                    file._compressed = true;
+
                     du.uploadFile(file);
                 });
             } else {
@@ -499,296 +512,6 @@
             }
             return "";
         }
-    },
-
-    /**********
-     * 图片类 *
-     **********/
-    DImage = function (file, opts, resolve) {
-        var me = this;
-        var BLANK = 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs%3D';
-
-        var defaults = {
-            // 最大宽高
-            width: 1280,
-            height: 1280,
-            // 图片质量，只有type为`image/jpeg`的时候才有效。
-            quality: 90,
-            // 是否保留头部meta信息。
-            preserveHeaders: true
-        };
-
-        for (var param in opts) {
-            defaults[param] = opts[param];
-        }
-
-        me.opts = defaults;
-        me.debug = false;
-
-        me.init = function () {
-            var img = new Image();
-
-            img.onload = function () {
-                // 读取meta信息。
-                if (!me._metas && 'image/jpeg' === me.type) {
-                    me.parse(file.source, function (error, ret) {
-                        me._metas = ret;
-                        me.resize(me.opts.width, me.opts.height);
-                    });
-                } else {
-                    me.resize(me.opts.width, me.opts.height);
-                }
-            };
-
-            img.onerror = function () {
-                // me.trigger('error');
-                console.log('image load error');
-            };
-
-            img.src = file.src;
-            me.type = file.type;
-
-            me._img = img;
-        };
-
-        me.destroy = function () {
-            var canvas = this._canvas;
-            this._img.onload = null;
-
-            if (canvas) {
-                canvas.getContext('2d')
-                    .clearRect(0, 0, canvas.width, canvas.height);
-                canvas.width = canvas.height = 0;
-                this._canvas = null;
-            }
-
-            // 释放内存。非常重要，否则释放不了image的内存。
-            this._img.src = BLANK;
-            this._img = null;
-        };
-
-        me.dataURL2Blob = function (base64) {
-            var byteStr, intArray, ab, i, mimetype, parts;
-
-            parts = base64.split(',');
-
-            if (~parts[0].indexOf('base64')) {
-                byteStr = atob(parts[1]);
-            } else {
-                byteStr = decodeURIComponent(parts[1]);
-            }
-
-            ab = new ArrayBuffer(byteStr.length);
-            intArray = new Uint8Array(ab);
-
-            for (i = 0; i < byteStr.length; i++) {
-                intArray[i] = byteStr.charCodeAt(i);
-            }
-
-            mimetype = parts[0].split(':')[1].split(';')[0];
-
-            return this.arrayBufferToBlob(ab, mimetype);
-        };
-
-        me.dataURL2ArrayBuffer = function (base64) {
-            var byteStr, intArray, i, parts;
-
-            parts = base64.split(',');
-
-            if (~parts[0].indexOf('base64')) {
-                byteStr = atob(parts[1]);
-            } else {
-                byteStr = decodeURIComponent(parts[1]);
-            }
-
-            intArray = new Uint8Array(byteStr.length);
-
-            for (i = 0; i < byteStr.length; i++) {
-                intArray[i] = byteStr.charCodeAt(i);
-            }
-
-            return intArray.buffer;
-        };
-
-        me.arrayBufferToBlob = function (buffer, type) {
-            var builder = window.BlobBuilder || window.WebKitBlobBuilder,
-                bb;
-
-            // android不支持直接new Blob, 只能借助blobbuilder.
-            if (builder) {
-                bb = new builder();
-                bb.append(buffer);
-                return bb.getBlob(type);
-            }
-
-            return new Blob([buffer], type ? {type: type} : {});
-        };
-
-        me.getAsBlob = function () {
-            var me = this,
-                canvas = this._canvas,
-                base64, buffer, blob;
-
-            try {
-                // android下面canvas.toDataUrl不支持jpeg，得到的结果是png.
-                if (this.type === 'image/jpeg') {
-                    base64 = canvas.toDataURL(this.type, me.opts.quality / 100);
-
-                    if (me.opts.preserveHeaders && this._metas && this._metas.imageHead) {
-                        buffer = me.dataURL2ArrayBuffer(base64);
-                        buffer = me.updateImageHead(buffer, this._metas.imageHead);
-                        blob = me.arrayBufferToBlob(buffer, this.type);
-                        return blob;
-                    }
-                } else {
-                    base64 = canvas.toDataURL(this.type);
-                }
-                blob = this.dataURL2Blob(base64);
-
-            } catch (e) {
-                // 出错了直接继续
-            }
-            return blob;
-        };
-
-        me.resize = function (width, height) {
-            var canvas = this._canvas ||
-                    (this._canvas = document.createElement('canvas')),
-                blob;
-
-            this._resize(this._img, canvas, width, height);
-
-            blob = this.getAsBlob();
-
-            file.size = blob.size;
-            file.source = blob;
-
-            // 完成后，后续程序继续
-            resolve();
-        };
-
-        me._resize = function (img, cvs, width, height) {
-            var naturalWidth = img.width,
-                naturalHeight = img.height,
-                scale, w, h;
-
-            // 如果 width 的值介于 0 - 1
-            // 说明设置的是百分比。
-            if (width <= 1 && width > 0) {
-                width = naturalWidth * width;
-            }
-            // 同样的规则应用于 height
-            if (height <= 1 && height > 0) {
-                height = naturalHeight * height;
-            }
-
-            scale = Math.min(width / naturalWidth, height / naturalHeight);
-
-            // 不允许放大
-            scale = Math.min(1, scale);
-
-            w = naturalWidth * scale;
-            h = naturalHeight * scale;
-
-            cvs.width = w;
-            cvs.height = h;
-
-            var ctx = cvs.getContext('2d');
-            ctx.drawImage(img, 0, 0, w, h);
-        };
-
-        me.maxMetaDataSize = 262144;
-        me.parse = function (blob, cb) {
-            var me = this,
-                fr = new FileReader();
-
-            fr.onload = function () {
-                cb(false, me._parse(this.result));
-                fr = fr.onload = fr.onerror = null;
-            };
-
-            fr.onerror = function (e) {
-                cb(e.message);
-                fr = fr.onload = fr.onerror = null;
-            };
-
-            blob = blob.slice(0, me.maxMetaDataSize);
-            fr.readAsArrayBuffer(blob);
-        };
-
-        me._parse = function (buffer) {
-            if (buffer.byteLength < 6) {
-                return;
-            }
-
-            var dataView = new DataView(buffer),
-                offset = 2,
-                maxOffset = dataView.byteLength - 4,
-                ret = {},
-                markerBytes, markerLength;
-
-            if (me.debug) console.log("Got file of length " + buffer.byteLength);
-            if ((dataView.getUint8(0) != 0xFF) || (dataView.getUint8(1) != 0xD8)) {
-                if (me.debug) console.log("Not a valid JPEG");
-                return ret;
-            }
-
-            if (dataView.getUint16(0) === 0xffd8) {
-
-                while (offset < maxOffset) {
-                    markerBytes = dataView.getUint16(offset);
-                    if (me.debug) console.log(markerBytes);
-
-                    if (markerBytes >= 0xffe0 && markerBytes <= 0xffef ||
-                        markerBytes === 0xfffe) {
-
-                        markerLength = dataView.getUint16(offset + 2) + 2;
-
-                        if (offset + markerLength > dataView.byteLength) {
-                            break;
-                        }
-
-                        offset += markerLength;
-                    } else {
-                        break;
-                    }
-                }
-
-                if (offset > 6) {
-                    // Workaround for IE10, which does not yet
-                    // support ArrayBuffer.slice:
-                    ret.imageHead = new Uint8Array(buffer).subarray(2, offset);
-                }
-            }
-
-            return ret;
-        };
-
-        me.updateImageHead = function (buffer, head) {
-            var data = this._parse(buffer),
-                bodyOffset = 2,
-                buf1, buf2;
-
-            // buffer可能含有head信息
-            if (data.imageHead) {
-                bodyOffset += data.imageHead.byteLength;
-            }
-
-            buf2 = new Uint8Array(buffer).subarray(bodyOffset);
-            buf1 = new Uint8Array(head.byteLength + 2 + buf2.byteLength);
-            buf1[0] = 0xFF;
-            buf1[1] = 0xD8;
-            buf1.set(new Uint8Array(head), 2);
-            buf1.set(new Uint8Array(buf2), head.byteLength + 2);
-
-            return buf1.buffer;
-        };
-
-        me.init();
-    };
-
-    DImage.resize = function (file, opts, callback) {
-        return new DImage(file, opts, callback);
     };
 
     // 静态方法

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>HTML5 Uploader</title>
-    <script src="dupload.js"></script>
+    <script src="dupload.min.js"></script>
     <script>
     window.onload = function() {
         var progressBar = document.querySelector('.progress-bar');
@@ -11,16 +11,19 @@
             container: '.container',
             url: 'http://localhost:5000/upload',
             allowMimeTypes: "*",
-//            compress:false,
+            compress:true,
             onProgress: function(du, file) {
                 progressBar.innerHTML = file.percent+'%';
+            },
+            onBefore: function (du, file) {
+                return true;
             },
             onUploaded: function(du, file, res) {
                 if(res.code !== 0) return res.message;
                 file.url =  'http://localhost:5000/file/' + res.data.key;
                 console.log(file);
 
-                document.querySelector('img').setAttribute('src', file.url);
+                document.querySelector('img').setAttribute('src', file.src);
 
                 return true;
             },
